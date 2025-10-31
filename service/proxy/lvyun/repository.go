@@ -61,6 +61,8 @@ func (r *Repository) SaveReservations(ctx context.Context, data []interface{}) e
 			GuestName:  resp.Name,
 			RoomType:   resp.RmType,
 			RoomNo:     resp.Rmno,
+			RoomNum:    resp.Rmnum,
+			Adult:      resp.Adult,
 			RsvClass:   resp.RsvClass,
 			RsvNo:      resp.RsvNo,
 			Packages:   resp.Packages,
@@ -70,14 +72,6 @@ func (r *Repository) SaveReservations(ctx context.Context, data []interface{}) e
 			Remark:     resp.Remark,
 			SyncTime:   syncTime,
 			UniqueKey:  fmt.Sprintf("%s_%s_%s", resp.Hotelcode, resp.RsvNo, resp.Id),
-		}
-
-		// 解析数值字段
-		if resp.Rmnum != "" {
-			fmt.Sscanf(resp.Rmnum, "%d", &record.RoomNum)
-		}
-		if resp.Adult != "" {
-			fmt.Sscanf(resp.Adult, "%d", &record.Adult)
 		}
 
 		// 解析时间字段
@@ -147,6 +141,8 @@ func (r *Repository) SaveRegistrations(ctx context.Context, data []interface{}) 
 			GuestName:  resp.Name,
 			RoomType:   resp.RmType,
 			RoomNo:     resp.Rmno,
+			RoomNum:    resp.Rmnum,
+			Adult:      resp.Adult,
 			RsvClass:   resp.RsvClass,
 			RsvNo:      resp.RsvNo,
 			Packages:   resp.Packages,
@@ -157,14 +153,6 @@ func (r *Repository) SaveRegistrations(ctx context.Context, data []interface{}) 
 			Remark:     resp.Remark,
 			SyncTime:   syncTime,
 			UniqueKey:  fmt.Sprintf("%s_%s_%s", resp.Hotelcode, resp.RsvNo, resp.Id),
-		}
-
-		// 解析数值字段
-		if resp.Rmnum != "" {
-			fmt.Sscanf(resp.Rmnum, "%d", &record.RoomNum)
-		}
-		if resp.Adult != "" {
-			fmt.Sscanf(resp.Adult, "%d", &record.Adult)
 		}
 
 		// 解析时间字段

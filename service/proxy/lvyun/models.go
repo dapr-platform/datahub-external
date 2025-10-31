@@ -16,8 +16,8 @@ type ReservationResponse struct {
 	Name           string `json:"Name"`           // 姓名
 	RmType         string `json:"RmType"`         // 房型
 	Rmno           string `json:"Rmno"`           // 房号
-	Rmnum          string `json:"Rmnum"`          // 房数
-	Adult          string `json:"Adult"`          // 成人
+	Rmnum          int    `json:"Rmnum"`          // 房数
+	Adult          int    `json:"Adult"`          // 成人
 	ArrDate        string `json:"ArrDate"`        // 入住日期
 	DepDate        string `json:"DepDate"`        // 离店日期
 	RsvClass       string `json:"RsvClass"`       // 客户类型
@@ -46,8 +46,8 @@ type RegistrationResponse struct {
 	Name           string `json:"Name"`           // 姓名
 	RmType         string `json:"RmType"`         // 房型
 	Rmno           string `json:"Rmno"`           // 房号
-	Rmnum          string `json:"Rmnum"`          // 房数
-	Adult          string `json:"Adult"`          // 成人
+	Rmnum          int    `json:"Rmnum"`          // 房数
+	Adult          int    `json:"Adult"`          // 成人
 	ArrDate        string `json:"ArrDate"`        // 入住日期
 	DepDate        string `json:"DepDate"`        // 离店日期
 	RsvClass       string `json:"RsvClass"`       // 客户类型
