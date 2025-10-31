@@ -26,8 +26,22 @@ func init() {
 
 	// 加载配置
 	cfg := config.LoadConfig()
+
+	// 配置 slog，使用本地时区输出时间
 	slog.SetDefault(slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{
 		Level: slog.LevelDebug,
+		ReplaceAttr: func(groups []string, a slog.Attr) slog.Attr {
+			// 将时间字段转换为本地时区
+			if a.Key == slog.TimeKey {
+				if t, ok := a.Value.Any().(time.Time); ok {
+					return slog.Attr{
+						Key:   a.Key,
+						Value: slog.StringValue(t.Local().Format(time.RFC3339)),
+					}
+				}
+			}
+			return a
+		},
 	})))
 
 	// 初始化数据库连接

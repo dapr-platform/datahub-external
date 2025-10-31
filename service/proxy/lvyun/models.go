@@ -84,6 +84,7 @@ type CheckoutResponse struct {
 	ArrDep    string  `json:"ArrDep"`    // 到达日期
 	DepDate   string  `json:"DepDate"`   // 离开日期
 	Mobile    string  `json:"Mobile"`    // 手机号
+	Remark    string  `json:"Remark"`    // 备注
 }
 
 // BusinessReportRequest 营业报表请求参数
@@ -110,4 +111,5 @@ type BusinessReportResponse struct {
 	TaxDay      float64 `json:"TaxDay"`      // 本日发生-税
 	TaxMonth    float64 `json:"TaxMonth"`    // 本月发生-税
 	TaxYear     float64 `json:"TaxYear"`     // 本年发生-税
+	Remark      string  `json:"Remark"`      // 备注
 }

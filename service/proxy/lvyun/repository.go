@@ -54,6 +54,12 @@ func (r *Repository) SaveReservations(ctx context.Context, data []interface{}) e
 			continue
 		}
 
+		// 过滤频率限制错误响应
+		if isRateLimitError(resp.Remark) {
+			slog.Warn("检测到频率限制错误响应，跳过保存", "remark", resp.Remark)
+			continue
+		}
+
 		record := LvyunReservation{
 			HotelCode:  resp.HotelCode,
 			HotelName:  resp.HotelName,
@@ -131,6 +137,12 @@ func (r *Repository) SaveRegistrations(ctx context.Context, data []interface{}) 
 		var resp RegistrationResponse
 		if err := json.Unmarshal(jsonData, &resp); err != nil {
 			slog.Error("解析登记单数据失败", "error", err, "data", string(jsonData))
+			continue
+		}
+
+		// 过滤频率限制错误响应
+		if isRateLimitError(resp.Remark) {
+			slog.Warn("检测到频率限制错误响应，跳过保存", "remark", resp.Remark)
 			continue
 		}
 
@@ -215,6 +227,12 @@ func (r *Repository) SaveCheckouts(ctx context.Context, data []interface{}) erro
 			continue
 		}
 
+		// 过滤频率限制错误响应
+		if isRateLimitError(resp.Remark) {
+			slog.Warn("检测到频率限制错误响应，跳过保存", "remark", resp.Remark)
+			continue
+		}
+
 		record := LvyunCheckout{
 			HotelCode: resp.HotelCode,
 			HotelName: resp.HotelName,
@@ -291,6 +309,12 @@ func (r *Repository) SaveBusinessReports(ctx context.Context, data []interface{}
 			continue
 		}
 
+		// 过滤频率限制错误响应
+		if isRateLimitError(resp.Remark) {
+			slog.Warn("检测到频率限制错误响应，跳过保存", "remark", resp.Remark)
+			continue
+		}
+
 		record := LvyunBusinessReport{
 			HotelCode:   resp.HotelCode,
 			HotelName:   resp.HotelName,
@@ -361,4 +385,15 @@ func parseDateTime(dateStr string) (time.Time, error) {
 	}
 
 	return time.Time{}, fmt.Errorf("无法解析日期: %s", dateStr)
+}
+
+// isRateLimitError 检查是否为频率限制错误
+func isRateLimitError(remark string) bool {
+	if remark == "" {
+		return false
+	}
+	// 检查是否包含频率限制的关键字
+	return strings.Contains(remark, "请不要频繁调用接口") ||
+		strings.Contains(remark, "请10分钟后再查询") ||
+		(strings.Contains(remark, "请在") && strings.Contains(remark, "之后重试"))
 }
