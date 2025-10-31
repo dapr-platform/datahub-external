@@ -44,5 +44,5 @@ ai_docs/
 
 scripts/
 client_test.go
-
+*.md
 

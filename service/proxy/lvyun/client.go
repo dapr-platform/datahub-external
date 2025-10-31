@@ -17,6 +17,7 @@ import (
 	"time"
 
 	"datahub-external/service/config"
+	"gorm.io/gorm"
 )
 
 // LvyunClient 绿云接口客户端
@@ -27,6 +28,8 @@ type LvyunClient struct {
 	mu         sync.RWMutex
 	stopChan   chan struct{}
 	status     string
+	repository *Repository
+	scheduler  *Scheduler
 }
 
 // LoginResponse 登录响应
@@ -46,13 +49,13 @@ type ErrorResponse struct {
 
 // QueryResponse 查询响应
 type QueryResponse struct {
-	ResultCode int           `json:"resultCode"`
-	ResultMsg  string        `json:"resultMsg"`
-	Result     []interface{} `json:"result"`
+	ResultCode int             `json:"resultCode"`
+	ResultMsg  string          `json:"resultMsg"`
+	ResultInfo json.RawMessage `json:"resultInfo"` // 使用RawMessage以支持不同的返回格式
 }
 
 // NewLvyunClient 创建绿云客户端
-func NewLvyunClient(cfg config.LvyunConfig) *LvyunClient {
+func NewLvyunClient(cfg config.LvyunConfig, db *gorm.DB) *LvyunClient {
 	slog.Info("创建绿云客户端",
 		"base_url", cfg.BaseURL,
 		"hotel_group_code", cfg.HotelGroupCode,
@@ -67,6 +70,16 @@ func NewLvyunClient(cfg config.LvyunConfig) *LvyunClient {
 		status:   "initialized",
 	}
 
+	// 初始化数据仓库
+	if db != nil {
+		client.repository = NewRepository(db)
+		if err := client.repository.AutoMigrate(); err != nil {
+			slog.Error("数据库自动迁移失败", "error", err)
+		} else {
+			slog.Info("数据库自动迁移成功")
+		}
+	}
+
 	// 启动时自动登录
 	if err := client.login(); err != nil {
 		client.status = fmt.Sprintf("login_failed: %v", err)
@@ -76,9 +89,32 @@ func NewLvyunClient(cfg config.LvyunConfig) *LvyunClient {
 		slog.Info("绿云客户端初始化登录成功")
 		// 启动自动刷新goroutine
 		go client.autoRefresh()
+
+		// 启动调度器
+		if client.repository != nil && cfg.EnableScheduler {
+			client.startScheduler()
+		}
 	}
 
 	return client
+}
+
+// startScheduler 启动调度器
+func (c *LvyunClient) startScheduler() {
+	schedulerConfig := SchedulerConfig{
+		ReservationCron:    c.config.ReservationCron,
+		RegistrationCron:   c.config.RegistrationCron,
+		CheckoutCron:       c.config.CheckoutCron,
+		BusinessReportCron: c.config.BusinessReportCron,
+		HotelCode:          c.config.HotelCode,
+		QueryDays:          c.config.QueryDays,
+		BusinessReportDays: c.config.BusinessReportDays,
+	}
+
+	c.scheduler = NewScheduler(schedulerConfig, c, c.repository)
+	if err := c.scheduler.Start(); err != nil {
+		slog.Error("启动调度器失败", "error", err)
+	}
 }
 
 // GetName 获取客户端名称
@@ -279,7 +315,91 @@ func (c *LvyunClient) autoRefresh() {
 
 // Stop 停止客户端
 func (c *LvyunClient) Stop() {
+	if c.scheduler != nil {
+		c.scheduler.Stop()
+	}
 	close(c.stopChan)
+}
+
+// GetScheduler 获取调度器
+func (c *LvyunClient) GetScheduler() *Scheduler {
+	return c.scheduler
+}
+
+// SaveReservationsToDB 保存预订单数据到数据库
+func (c *LvyunClient) SaveReservationsToDB(ctx interface{}, data interface{}) error {
+	if c.repository == nil {
+		return fmt.Errorf("数据库未配置")
+	}
+	
+	dataArray, ok := data.([]interface{})
+	if !ok {
+		return fmt.Errorf("数据格式错误")
+	}
+	
+	ctxTyped, ok := ctx.(context.Context)
+	if !ok {
+		ctxTyped = context.Background()
+	}
+	
+	return c.repository.SaveReservations(ctxTyped, dataArray)
+}
+
+// SaveRegistrationsToDB 保存登记单数据到数据库
+func (c *LvyunClient) SaveRegistrationsToDB(ctx interface{}, data interface{}) error {
+	if c.repository == nil {
+		return fmt.Errorf("数据库未配置")
+	}
+	
+	dataArray, ok := data.([]interface{})
+	if !ok {
+		return fmt.Errorf("数据格式错误")
+	}
+	
+	ctxTyped, ok := ctx.(context.Context)
+	if !ok {
+		ctxTyped = context.Background()
+	}
+	
+	return c.repository.SaveRegistrations(ctxTyped, dataArray)
+}
+
+// SaveCheckoutsToDB 保存结账单数据到数据库
+func (c *LvyunClient) SaveCheckoutsToDB(ctx interface{}, data interface{}) error {
+	if c.repository == nil {
+		return fmt.Errorf("数据库未配置")
+	}
+	
+	dataArray, ok := data.([]interface{})
+	if !ok {
+		return fmt.Errorf("数据格式错误")
+	}
+	
+	ctxTyped, ok := ctx.(context.Context)
+	if !ok {
+		ctxTyped = context.Background()
+	}
+	
+	return c.repository.SaveCheckouts(ctxTyped, dataArray)
+}
+
+// SaveBusinessReportsToDB 保存营业报表数据到数据库
+func (c *LvyunClient) SaveBusinessReportsToDB(ctx interface{}, data interface{}) error {
+	if c.repository == nil {
+		return fmt.Errorf("数据库未配置")
+	}
+	
+	dataArray, ok := data.([]interface{})
+	if !ok {
+		return fmt.Errorf("数据格式错误")
+	}
+	
+	ctxTyped, ok := ctx.(context.Context)
+	if !ok {
+		ctxTyped = context.Background()
+	}
+	
+	return c.repository.SaveBusinessReports(ctxTyped, dataArray)
 }
 
 // calculateSign 计算签名
@@ -431,11 +551,23 @@ func (c *LvyunClient) query(ctx context.Context, exec string, queryParams map[st
 		return nil, fmt.Errorf("查询失败: %s", queryResp.ResultMsg)
 	}
 
+	// 解析resultInfo为数组
+	var resultData []interface{}
+	if len(queryResp.ResultInfo) > 0 {
+		if err := json.Unmarshal(queryResp.ResultInfo, &resultData); err != nil {
+			slog.Error("解析ResultInfo失败",
+				"exec", exec,
+				"error", err,
+				"resultInfo", string(queryResp.ResultInfo))
+			return nil, fmt.Errorf("解析ResultInfo失败: %v", err)
+		}
+	}
+
 	slog.Info("查询成功",
 		"exec", exec,
-		"result_count", len(queryResp.Result))
+		"result_count", len(resultData))
 
-	return queryResp.Result, nil
+	return resultData, nil
 }
 
 // queryReservations 预订单数据

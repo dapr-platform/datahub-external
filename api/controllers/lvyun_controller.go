@@ -37,6 +37,7 @@ func (c *LvyunController) GetReservations(w http.ResponseWriter, r *http.Request
 	hotelCode := r.URL.Query().Get("hotel_code")
 	startDate := r.URL.Query().Get("start_date")
 	endDate := r.URL.Query().Get("end_date")
+	saveDB := r.URL.Query().Get("save_db") // 是否保存到数据库，默认true
 
 	if hotelCode == "" {
 		RespondError(w, r, http.StatusBadRequest, "缺少酒店代码参数")
@@ -69,6 +70,23 @@ func (c *LvyunController) GetReservations(w http.ResponseWriter, r *http.Request
 		return
 	}
 
+	// 默认保存到数据库（除非明确指定save_db=false）
+	if saveDB != "false" {
+		// 尝试保存到数据库
+		if lvyunClient, ok := client.(interface {
+			SaveReservationsToDB(ctx interface{}, data interface{}) error
+		}); ok {
+			if err := lvyunClient.SaveReservationsToDB(r.Context(), result); err != nil {
+				// 保存失败只记录日志，不影响返回
+				RespondSuccess(w, r, map[string]interface{}{
+					"data":    result,
+					"message": "数据查询成功，但保存到数据库失败: " + err.Error(),
+				})
+				return
+			}
+		}
+	}
+
 	RespondSuccess(w, r, result)
 }
 
@@ -91,6 +109,7 @@ func (c *LvyunController) GetRegistrations(w http.ResponseWriter, r *http.Reques
 	hotelCode := r.URL.Query().Get("hotel_code")
 	startDate := r.URL.Query().Get("start_date")
 	endDate := r.URL.Query().Get("end_date")
+	saveDB := r.URL.Query().Get("save_db") // 是否保存到数据库，默认true
 
 	if hotelCode == "" {
 		RespondError(w, r, http.StatusBadRequest, "缺少酒店代码参数")
@@ -123,6 +142,21 @@ func (c *LvyunController) GetRegistrations(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
+	// 默认保存到数据库（除非明确指定save_db=false）
+	if saveDB != "false" {
+		if lvyunClient, ok := client.(interface {
+			SaveRegistrationsToDB(ctx interface{}, data interface{}) error
+		}); ok {
+			if err := lvyunClient.SaveRegistrationsToDB(r.Context(), result); err != nil {
+				RespondSuccess(w, r, map[string]interface{}{
+					"data":    result,
+					"message": "数据查询成功，但保存到数据库失败: " + err.Error(),
+				})
+				return
+			}
+		}
+	}
+
 	RespondSuccess(w, r, result)
 }
 
@@ -143,6 +177,7 @@ func (c *LvyunController) GetRegistrations(w http.ResponseWriter, r *http.Reques
 func (c *LvyunController) GetCheckouts(w http.ResponseWriter, r *http.Request) {
 	hotelCode := r.URL.Query().Get("hotel_code")
 	bizDate := r.URL.Query().Get("biz_date")
+	saveDB := r.URL.Query().Get("save_db") // 是否保存到数据库，默认true
 
 	if hotelCode == "" {
 		RespondError(w, r, http.StatusBadRequest, "缺少酒店代码参数")
@@ -170,6 +205,21 @@ func (c *LvyunController) GetCheckouts(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// 默认保存到数据库（除非明确指定save_db=false）
+	if saveDB != "false" {
+		if lvyunClient, ok := client.(interface {
+			SaveCheckoutsToDB(ctx interface{}, data interface{}) error
+		}); ok {
+			if err := lvyunClient.SaveCheckoutsToDB(r.Context(), result); err != nil {
+				RespondSuccess(w, r, map[string]interface{}{
+					"data":    result,
+					"message": "数据查询成功，但保存到数据库失败: " + err.Error(),
+				})
+				return
+			}
+		}
+	}
+
 	RespondSuccess(w, r, result)
 }
 
@@ -192,6 +242,7 @@ func (c *LvyunController) GetBusinessReport(w http.ResponseWriter, r *http.Reque
 	hotelCode := r.URL.Query().Get("hotel_code")
 	startDate := r.URL.Query().Get("start_date")
 	endDate := r.URL.Query().Get("end_date")
+	saveDB := r.URL.Query().Get("save_db") // 是否保存到数据库，默认true
 
 	if hotelCode == "" {
 		RespondError(w, r, http.StatusBadRequest, "缺少酒店代码参数")
@@ -222,6 +273,21 @@ func (c *LvyunController) GetBusinessReport(w http.ResponseWriter, r *http.Reque
 	if err != nil {
 		RespondError(w, r, http.StatusInternalServerError, err.Error())
 		return
+	}
+
+	// 默认保存到数据库（除非明确指定save_db=false）
+	if saveDB != "false" {
+		if lvyunClient, ok := client.(interface {
+			SaveBusinessReportsToDB(ctx interface{}, data interface{}) error
+		}); ok {
+			if err := lvyunClient.SaveBusinessReportsToDB(r.Context(), result); err != nil {
+				RespondSuccess(w, r, map[string]interface{}{
+					"data":    result,
+					"message": "数据查询成功，但保存到数据库失败: " + err.Error(),
+				})
+				return
+			}
+		}
 	}
 
 	RespondSuccess(w, r, result)

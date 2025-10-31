@@ -27,6 +27,7 @@ type ReservationResponse struct {
 	CreateDatetime string `json:"CreateDatetime"` // 预定时间
 	Mobile         string `json:"Mobile"`         // 手机号
 	Sta            string `json:"Sta"`            // 订单状态 (R代表预定状态)
+	Remark         string `json:"Remark"`         // 备注
 }
 
 // RegistrationRequest 登记单请求参数
@@ -57,6 +58,7 @@ type RegistrationResponse struct {
 	Mobile         string `json:"Mobile"`         // 手机号
 	Sta            string `json:"Sta"`            // 订单状态 (R代表预定状态)
 	MasterId       string `json:"MasterId"`       // 主单id
+	Remark         string `json:"Remark"`         // 备注
 }
 
 // CheckoutRequest 结账单请求参数
