@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"log/slog"
 	"os"
+	"time"
 
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
@@ -14,6 +15,15 @@ import (
 )
 
 func init() {
+	// 设置时区为 Asia/Shanghai
+	loc, err := time.LoadLocation("Asia/Shanghai")
+	if err != nil {
+		slog.Warn("加载时区失败,使用系统默认时区", "error", err)
+	} else {
+		time.Local = loc
+		slog.Info("时区设置成功", "timezone", "Asia/Shanghai")
+	}
+
 	// 加载配置
 	cfg := config.LoadConfig()
 	slog.SetDefault(slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{
