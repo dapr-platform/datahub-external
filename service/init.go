@@ -1,0 +1,28 @@
+package service
+
+import (
+	"datahub-external/service/config"
+	"datahub-external/service/proxy"
+	"datahub-external/service/proxy/lvyun"
+	"log/slog"
+	"os"
+)
+
+func init() {
+	// 加载配置
+	cfg := config.LoadConfig()
+	slog.SetDefault(slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{
+		Level: slog.LevelDebug,
+	})))
+	// 初始化绿云客户端(如果配置了)
+	if cfg.Lvyun.BaseURL != "" {
+		lvyunClient := lvyun.NewLvyunClient(cfg.Lvyun)
+		if err := proxy.GetGlobalRegistry().Register(lvyunClient); err != nil {
+			slog.Error("注册绿云客户端失败", "error", err)
+		} else {
+			slog.Info("绿云客户端注册成功", "base_url", cfg.Lvyun.BaseURL)
+		}
+	} else {
+		slog.Warn("绿云配置未设置,跳过初始化")
+	}
+}
