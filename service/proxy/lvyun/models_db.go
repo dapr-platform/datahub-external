@@ -14,7 +14,7 @@ type LvyunReservation struct {
 	DeletedAt      gorm.DeletedAt `gorm:"index" json:"deleted_at,omitempty"`
 	HotelCode      string         `gorm:"size:50;index" json:"hotel_code"`        // 酒店代码
 	HotelName      string         `gorm:"size:200" json:"hotel_name"`             // 酒店名称
-	RecordID       string         `gorm:"size:50" json:"record_id"`               // 账号
+	LvyunID        int            `gorm:"index" json:"lvyun_id"`                  // 绿云系统ID(业务主键)
 	GuestName      string         `gorm:"size:200" json:"guest_name"`             // 姓名
 	RoomType       string         `gorm:"size:50" json:"room_type"`               // 房型
 	RoomNo         string         `gorm:"size:50" json:"room_no"`                 // 房号
@@ -46,7 +46,7 @@ type LvyunRegistration struct {
 	DeletedAt      gorm.DeletedAt `gorm:"index" json:"deleted_at,omitempty"`
 	HotelCode      string         `gorm:"size:50;index" json:"hotel_code"`        // 酒店代码
 	HotelName      string         `gorm:"size:200" json:"hotel_name"`             // 酒店名称
-	RecordID       string         `gorm:"size:50" json:"record_id"`               // 账号
+	LvyunID        int            `gorm:"index" json:"lvyun_id"`                  // 绿云系统ID(业务主键)
 	GuestName      string         `gorm:"size:200" json:"guest_name"`             // 姓名
 	RoomType       string         `gorm:"size:50" json:"room_type"`               // 房型
 	RoomNo         string         `gorm:"size:50" json:"room_no"`                 // 房号
@@ -79,7 +79,7 @@ type LvyunCheckout struct {
 	DeletedAt gorm.DeletedAt `gorm:"index" json:"deleted_at,omitempty"`
 	HotelCode string         `gorm:"size:50;index" json:"hotel_code"`        // 酒店代码
 	HotelName string         `gorm:"size:200" json:"hotel_name"`             // 酒店名称
-	RecordID  string         `gorm:"size:50;index" json:"record_id"`         // 结账流水号
+	LvyunID   int            `gorm:"index" json:"lvyun_id"`                  // 绿云系统ID(业务主键)
 	BizDate   time.Time      `gorm:"index" json:"biz_date"`                  // 日期
 	Accnt     string         `gorm:"size:50" json:"accnt"`                   // 账号
 	Arrange   string         `gorm:"size:50" json:"arrange"`                 // 入账类型

@@ -55,9 +55,9 @@ func (r *Repository) SaveReservations(ctx context.Context, data []interface{}) e
 		}
 
 		record := LvyunReservation{
-			HotelCode:  resp.Hotelcode,
+			HotelCode:  resp.HotelCode,
 			HotelName:  resp.HotelName,
-			RecordID:   resp.Id,
+			LvyunID:    resp.Id,
 			GuestName:  resp.Name,
 			RoomType:   resp.RmType,
 			RoomNo:     resp.Rmno,
@@ -71,7 +71,7 @@ func (r *Repository) SaveReservations(ctx context.Context, data []interface{}) e
 			Status:     resp.Sta,
 			Remark:     resp.Remark,
 			SyncTime:   syncTime,
-			UniqueKey:  fmt.Sprintf("%s_%s_%s", resp.Hotelcode, resp.RsvNo, resp.Id),
+			UniqueKey:  fmt.Sprintf("%s_%d", resp.HotelCode, resp.Id),
 		}
 
 		// 解析时间字段
@@ -101,7 +101,7 @@ func (r *Repository) SaveReservations(ctx context.Context, data []interface{}) e
 	// 使用UPSERT操作
 	result := r.db.WithContext(ctx).Clauses(clause.OnConflict{
 		Columns:   []clause.Column{{Name: "unique_key"}},
-		DoUpdates: clause.AssignmentColumns([]string{"hotel_name", "guest_name", "room_type", "room_no", "room_num", "adult", "arr_date", "dep_date", "rsv_class", "packages", "create_user", "mobile", "status", "remark", "sync_time", "updated_at"}),
+		DoUpdates: clause.AssignmentColumns([]string{"hotel_name", "lvyun_id", "guest_name", "room_type", "room_no", "room_num", "adult", "arr_date", "dep_date", "rsv_class", "packages", "create_user", "mobile", "status", "remark", "sync_time", "updated_at"}),
 	}).Create(&records)
 
 	if result.Error != nil {
@@ -135,9 +135,9 @@ func (r *Repository) SaveRegistrations(ctx context.Context, data []interface{}) 
 		}
 
 		record := LvyunRegistration{
-			HotelCode:  resp.Hotelcode,
+			HotelCode:  resp.HotelCode,
 			HotelName:  resp.HotelName,
-			RecordID:   resp.Id,
+			LvyunID:    resp.Id,
 			GuestName:  resp.Name,
 			RoomType:   resp.RmType,
 			RoomNo:     resp.Rmno,
@@ -152,7 +152,7 @@ func (r *Repository) SaveRegistrations(ctx context.Context, data []interface{}) 
 			MasterID:   resp.MasterId,
 			Remark:     resp.Remark,
 			SyncTime:   syncTime,
-			UniqueKey:  fmt.Sprintf("%s_%s_%s", resp.Hotelcode, resp.RsvNo, resp.Id),
+			UniqueKey:  fmt.Sprintf("%s_%d", resp.HotelCode, resp.Id),
 		}
 
 		// 解析时间字段
@@ -182,7 +182,7 @@ func (r *Repository) SaveRegistrations(ctx context.Context, data []interface{}) 
 	// 使用UPSERT操作
 	result := r.db.WithContext(ctx).Clauses(clause.OnConflict{
 		Columns:   []clause.Column{{Name: "unique_key"}},
-		DoUpdates: clause.AssignmentColumns([]string{"hotel_name", "guest_name", "room_type", "room_no", "room_num", "adult", "arr_date", "dep_date", "rsv_class", "packages", "create_user", "mobile", "status", "master_id", "remark", "sync_time", "updated_at"}),
+		DoUpdates: clause.AssignmentColumns([]string{"hotel_name", "lvyun_id", "guest_name", "room_type", "room_no", "room_num", "adult", "arr_date", "dep_date", "rsv_class", "packages", "create_user", "mobile", "status", "master_id", "remark", "sync_time", "updated_at"}),
 	}).Create(&records)
 
 	if result.Error != nil {
@@ -216,9 +216,9 @@ func (r *Repository) SaveCheckouts(ctx context.Context, data []interface{}) erro
 		}
 
 		record := LvyunCheckout{
-			HotelCode: resp.Hotelcode,
+			HotelCode: resp.HotelCode,
 			HotelName: resp.HotelName,
-			RecordID:  resp.Id,
+			LvyunID:   resp.Id,
 			Accnt:     resp.Accnt,
 			Arrange:   resp.Arrange,
 			TaCode:    resp.TaCode,
@@ -228,7 +228,7 @@ func (r *Repository) SaveCheckouts(ctx context.Context, data []interface{}) erro
 			GuestName: resp.NAME,
 			Mobile:    resp.Mobile,
 			SyncTime:  syncTime,
-			UniqueKey: fmt.Sprintf("%s_%s_%s", resp.Hotelcode, resp.BizDate, resp.Id),
+			UniqueKey: fmt.Sprintf("%s_%s_%d", resp.HotelCode, resp.BizDate, resp.Id),
 		}
 
 		// 解析时间字段
@@ -258,7 +258,7 @@ func (r *Repository) SaveCheckouts(ctx context.Context, data []interface{}) erro
 	// 使用UPSERT操作
 	result := r.db.WithContext(ctx).Clauses(clause.OnConflict{
 		Columns:   []clause.Column{{Name: "unique_key"}},
-		DoUpdates: clause.AssignmentColumns([]string{"hotel_name", "accnt", "arrange", "ta_code", "ta_desc", "amount", "room_no", "guest_name", "arr_dep", "dep_date", "mobile", "sync_time", "updated_at"}),
+		DoUpdates: clause.AssignmentColumns([]string{"hotel_name", "lvyun_id", "accnt", "arrange", "ta_code", "ta_desc", "amount", "room_no", "guest_name", "arr_dep", "dep_date", "mobile", "sync_time", "updated_at"}),
 	}).Create(&records)
 
 	if result.Error != nil {
@@ -292,7 +292,7 @@ func (r *Repository) SaveBusinessReports(ctx context.Context, data []interface{}
 		}
 
 		record := LvyunBusinessReport{
-			HotelCode:   resp.Hotelcode,
+			HotelCode:   resp.HotelCode,
 			HotelName:   resp.HotelName,
 			Code:        resp.Code,
 			Descript:    resp.Descript,
@@ -306,7 +306,7 @@ func (r *Repository) SaveBusinessReports(ctx context.Context, data []interface{}
 			TaxMonth:    resp.TaxMonth,
 			TaxYear:     resp.TaxYear,
 			SyncTime:    syncTime,
-			UniqueKey:   fmt.Sprintf("%s_%s_%s", resp.Hotelcode, resp.BizDate, resp.Code),
+			UniqueKey:   fmt.Sprintf("%s_%s_%s", resp.HotelCode, resp.BizDate, resp.Code),
 		}
 
 		// 解析时间字段

@@ -10,9 +10,9 @@ type ReservationRequest struct {
 
 // ReservationResponse 预订单响应
 type ReservationResponse struct {
-	Hotelcode      string `json:"Hotelcode"`      // 酒店代码
+	HotelCode      string `json:"HotelCode"`      // 酒店代码
 	HotelName      string `json:"HotelName"`      // 酒店名称
-	Id             string `json:"Id"`             // 账号
+	Id             int    `json:"Id"`             // 绿云系统ID(唯一主键)
 	Name           string `json:"Name"`           // 姓名
 	RmType         string `json:"RmType"`         // 房型
 	Rmno           string `json:"Rmno"`           // 房号
@@ -40,10 +40,10 @@ type RegistrationRequest struct {
 
 // RegistrationResponse 登记单响应
 type RegistrationResponse struct {
-	Hotelcode      string `json:"Hotelcode"`      // 酒店代码
+	HotelCode      string `json:"HotelCode"`      // 酒店代码
 	HotelName      string `json:"HotelName"`      // 酒店名称
-	Id             string `json:"Id"`             // 账号
-	Name           string `json:"Name"`           // 姓名
+	Id             int    `json:"Id"`             // 绿云系统ID(唯一主键)
+	Name           string `json:"name"`           // 姓名 (注意: API返回的是小写name)
 	RmType         string `json:"RmType"`         // 房型
 	Rmno           string `json:"Rmno"`           // 房号
 	Rmnum          int    `json:"Rmnum"`          // 房数
@@ -56,7 +56,7 @@ type RegistrationResponse struct {
 	CreateUser     string `json:"CreateUser"`     // 创建用户
 	CreateDatetime string `json:"CreateDatetime"` // 预定时间
 	Mobile         string `json:"Mobile"`         // 手机号
-	Sta            string `json:"Sta"`            // 订单状态 (R代表预定状态)
+	Sta            string `json:"Sta"`            // 订单状态 (I代表入住状态)
 	MasterId       string `json:"MasterId"`       // 主单id
 	Remark         string `json:"Remark"`         // 备注
 }
@@ -70,9 +70,9 @@ type CheckoutRequest struct {
 
 // CheckoutResponse 结账单响应
 type CheckoutResponse struct {
-	Hotelcode string  `json:"Hotelcode"` // 酒店代码
+	HotelCode string  `json:"HotelCode"` // 酒店代码
 	HotelName string  `json:"HotelName"` // 酒店名称
-	Id        string  `json:"Id"`        // 结账流水号
+	Id        int     `json:"Id"`        // 绿云系统ID(唯一主键)
 	BizDate   string  `json:"BizDate"`   // 日期
 	Accnt     string  `json:"Accnt"`     // 账号
 	Arrange   string  `json:"Arrange"`   // 入账类型
@@ -96,7 +96,7 @@ type BusinessReportRequest struct {
 
 // BusinessReportResponse 营业报表响应
 type BusinessReportResponse struct {
-	Hotelcode   string  `json:"Hotelcode"`   // 酒店代码
+	HotelCode   string  `json:"HotelCode"`   // 酒店代码
 	HotelName   string  `json:"HotelName"`   // 酒店名称
 	BizDate     string  `json:"BizDate"`     // 日期
 	Code        string  `json:"Code"`        // 代码

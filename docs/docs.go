@@ -568,12 +568,12 @@ const docTemplate = `{
                     "description": "描述",
                     "type": "string"
                 },
-                "HotelName": {
-                    "description": "酒店名称",
+                "HotelCode": {
+                    "description": "酒店代码",
                     "type": "string"
                 },
-                "Hotelcode": {
-                    "description": "酒店代码",
+                "HotelName": {
+                    "description": "酒店名称",
                     "type": "string"
                 },
                 "Month": {
@@ -633,17 +633,17 @@ const docTemplate = `{
                     "description": "离开日期",
                     "type": "string"
                 },
+                "HotelCode": {
+                    "description": "酒店代码",
+                    "type": "string"
+                },
                 "HotelName": {
                     "description": "酒店名称",
                     "type": "string"
                 },
-                "Hotelcode": {
-                    "description": "酒店代码",
-                    "type": "string"
-                },
                 "Id": {
-                    "description": "结账流水号",
-                    "type": "string"
+                    "description": "绿云系统ID(唯一主键)",
+                    "type": "integer"
                 },
                 "Mobile": {
                     "description": "手机号",
@@ -672,7 +672,7 @@ const docTemplate = `{
             "properties": {
                 "Adult": {
                     "description": "成人",
-                    "type": "string"
+                    "type": "integer"
                 },
                 "ArrDate": {
                     "description": "入住日期",
@@ -690,17 +690,17 @@ const docTemplate = `{
                     "description": "离店日期",
                     "type": "string"
                 },
+                "HotelCode": {
+                    "description": "酒店代码",
+                    "type": "string"
+                },
                 "HotelName": {
                     "description": "酒店名称",
                     "type": "string"
                 },
-                "Hotelcode": {
-                    "description": "酒店代码",
-                    "type": "string"
-                },
                 "Id": {
-                    "description": "账号",
-                    "type": "string"
+                    "description": "绿云系统ID(唯一主键)",
+                    "type": "integer"
                 },
                 "MasterId": {
                     "description": "主单id",
@@ -708,10 +708,6 @@ const docTemplate = `{
                 },
                 "Mobile": {
                     "description": "手机号",
-                    "type": "string"
-                },
-                "Name": {
-                    "description": "姓名",
                     "type": "string"
                 },
                 "Packages": {
@@ -732,7 +728,7 @@ const docTemplate = `{
                 },
                 "Rmnum": {
                     "description": "房数",
-                    "type": "string"
+                    "type": "integer"
                 },
                 "RsvClass": {
                     "description": "客户类型",
@@ -743,7 +739,11 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "Sta": {
-                    "description": "订单状态 (R代表预定状态)",
+                    "description": "订单状态 (I代表入住状态)",
+                    "type": "string"
+                },
+                "name": {
+                    "description": "姓名 (注意: API返回的是小写name)",
                     "type": "string"
                 }
             }
@@ -753,7 +753,7 @@ const docTemplate = `{
             "properties": {
                 "Adult": {
                     "description": "成人",
-                    "type": "string"
+                    "type": "integer"
                 },
                 "ArrDate": {
                     "description": "入住日期",
@@ -771,17 +771,17 @@ const docTemplate = `{
                     "description": "离店日期",
                     "type": "string"
                 },
+                "HotelCode": {
+                    "description": "酒店代码",
+                    "type": "string"
+                },
                 "HotelName": {
                     "description": "酒店名称",
                     "type": "string"
                 },
-                "Hotelcode": {
-                    "description": "酒店代码",
-                    "type": "string"
-                },
                 "Id": {
-                    "description": "账号",
-                    "type": "string"
+                    "description": "绿云系统ID(唯一主键)",
+                    "type": "integer"
                 },
                 "Mobile": {
                     "description": "手机号",
@@ -809,7 +809,7 @@ const docTemplate = `{
                 },
                 "Rmnum": {
                     "description": "房数",
-                    "type": "string"
+                    "type": "integer"
                 },
                 "RsvClass": {
                     "description": "客户类型",
