@@ -1,0 +1,558 @@
+basePath: /swagger/datahub-external
+definitions:
+  controllers.APIResponse:
+    properties:
+      data: {}
+      error:
+        type: string
+      message:
+        type: string
+      status:
+        type: integer
+    type: object
+  lvyun.BusinessReportResponse:
+    properties:
+      BizDate:
+        description: 日期
+        type: string
+      Code:
+        description: 代码
+        type: string
+      Day:
+        description: 本日发生
+        type: number
+      DayRebate:
+        description: 本日发生-rebate
+        type: number
+      Descript:
+        description: 描述
+        type: string
+      HotelName:
+        description: 酒店名称
+        type: string
+      Hotelcode:
+        description: 酒店代码
+        type: string
+      Month:
+        description: 本月发生
+        type: number
+      MonthRebate:
+        description: 本月发生-rebate
+        type: number
+      TaxDay:
+        description: 本日发生-税
+        type: number
+      TaxMonth:
+        description: 本月发生-税
+        type: number
+      TaxYear:
+        description: 本年发生-税
+        type: number
+      Year:
+        description: 本年发生
+        type: number
+      YearRebate:
+        description: 本年发生-rebate
+        type: number
+    type: object
+  lvyun.CheckoutResponse:
+    properties:
+      Accnt:
+        description: 账号
+        type: string
+      Amount:
+        description: 金额
+        type: number
+      ArrDep:
+        description: 到达日期
+        type: string
+      Arrange:
+        description: 入账类型
+        type: string
+      BizDate:
+        description: 日期
+        type: string
+      DepDate:
+        description: 离开日期
+        type: string
+      HotelName:
+        description: 酒店名称
+        type: string
+      Hotelcode:
+        description: 酒店代码
+        type: string
+      Id:
+        description: 结账流水号
+        type: string
+      Mobile:
+        description: 手机号
+        type: string
+      NAME:
+        description: 姓名
+        type: string
+      Rmno:
+        description: 房间号
+        type: string
+      TaCode:
+        description: 入账代码
+        type: string
+      TaDesc:
+        description: 入账描述
+        type: string
+    type: object
+  lvyun.RegistrationResponse:
+    properties:
+      Adult:
+        description: 成人
+        type: string
+      ArrDate:
+        description: 入住日期
+        type: string
+      CreateDatetime:
+        description: 预定时间
+        type: string
+      CreateUser:
+        description: 创建用户
+        type: string
+      DepDate:
+        description: 离店日期
+        type: string
+      HotelName:
+        description: 酒店名称
+        type: string
+      Hotelcode:
+        description: 酒店代码
+        type: string
+      Id:
+        description: 账号
+        type: string
+      MasterId:
+        description: 主单id
+        type: string
+      Mobile:
+        description: 手机号
+        type: string
+      Name:
+        description: 姓名
+        type: string
+      Packages:
+        description: 包价
+        type: string
+      Remark:
+        description: 备注
+        type: string
+      RmType:
+        description: 房型
+        type: string
+      Rmno:
+        description: 房号
+        type: string
+      Rmnum:
+        description: 房数
+        type: string
+      RsvClass:
+        description: 客户类型
+        type: string
+      RsvNo:
+        description: 预定单号
+        type: string
+      Sta:
+        description: 订单状态 (R代表预定状态)
+        type: string
+    type: object
+  lvyun.ReservationResponse:
+    properties:
+      Adult:
+        description: 成人
+        type: string
+      ArrDate:
+        description: 入住日期
+        type: string
+      CreateDatetime:
+        description: 预定时间
+        type: string
+      CreateUser:
+        description: 创建用户
+        type: string
+      DepDate:
+        description: 离店日期
+        type: string
+      HotelName:
+        description: 酒店名称
+        type: string
+      Hotelcode:
+        description: 酒店代码
+        type: string
+      Id:
+        description: 账号
+        type: string
+      Mobile:
+        description: 手机号
+        type: string
+      Name:
+        description: 姓名
+        type: string
+      Packages:
+        description: 包价
+        type: string
+      Remark:
+        description: 备注
+        type: string
+      RmType:
+        description: 房型
+        type: string
+      Rmno:
+        description: 房号
+        type: string
+      Rmnum:
+        description: 房数
+        type: string
+      RsvClass:
+        description: 客户类型
+        type: string
+      RsvNo:
+        description: 预定单号
+        type: string
+      Sta:
+        description: 订单状态 (R代表预定状态)
+        type: string
+    type: object
+  proxy.ClientInfo:
+    properties:
+      description:
+        type: string
+      name:
+        type: string
+      route_prefix:
+        type: string
+      status:
+        type: string
+    type: object
+info:
+  contact: {}
+  description: 代理第三方数据接口，如绿云酒店管理系统等
+  title: 数据底座外部接口代理服务 API
+  version: "1.0"
+paths:
+  /datasources:
+    get:
+      consumes:
+      - application/json
+      description: 返回所有已注册的第三方数据源信息
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/controllers.APIResponse'
+            - properties:
+                data:
+                  items:
+                    $ref: '#/definitions/proxy.ClientInfo'
+                  type: array
+              type: object
+      security:
+      - ApiKeyAuth: []
+      summary: 列出所有数据源
+      tags:
+      - 数据源
+  /health:
+    get:
+      consumes:
+      - application/json
+      description: 检查服务是否运行
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+      summary: 健康检查
+      tags:
+      - 健康检查
+  /lvyun/business-report:
+    get:
+      consumes:
+      - application/json
+      description: 获取营业日报表数据，包括代码、描述、本日发生、本月发生、本年发生等
+      parameters:
+      - description: 酒店代码
+        in: query
+        name: hotel_code
+        required: true
+        type: string
+      - description: '开始日期 (格式: 2022-10-20 00:00:00)'
+        in: query
+        name: start_date
+        required: true
+        type: string
+      - description: '结束日期 (格式: 2022-10-21 00:00:00)'
+        in: query
+        name: end_date
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/controllers.APIResponse'
+            - properties:
+                data:
+                  items:
+                    $ref: '#/definitions/lvyun.BusinessReportResponse'
+                  type: array
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/controllers.APIResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/controllers.APIResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/controllers.APIResponse'
+      security:
+      - ApiKeyAuth: []
+      summary: 营业报表数据
+      tags:
+      - 绿云接口
+  /lvyun/checkouts:
+    get:
+      consumes:
+      - application/json
+      description: 获取结账单流水数据，包括结账流水号、账号、入账类型、入账代码、金额等
+      parameters:
+      - description: 酒店代码
+        in: query
+        name: hotel_code
+        required: true
+        type: string
+      - description: '营业日期 (格式: 2025-10-20 00:00:00)'
+        in: query
+        name: biz_date
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/controllers.APIResponse'
+            - properties:
+                data:
+                  items:
+                    $ref: '#/definitions/lvyun.CheckoutResponse'
+                  type: array
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/controllers.APIResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/controllers.APIResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/controllers.APIResponse'
+      security:
+      - ApiKeyAuth: []
+      summary: 结账单数据
+      tags:
+      - 绿云接口
+  /lvyun/health:
+    get:
+      consumes:
+      - application/json
+      description: 检查绿云接口连接状态
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/controllers.APIResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/controllers.APIResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/controllers.APIResponse'
+      security:
+      - ApiKeyAuth: []
+      summary: 绿云接口健康检查
+      tags:
+      - 绿云接口
+  /lvyun/info:
+    get:
+      consumes:
+      - application/json
+      description: 返回绿云接口的基本信息和状态
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/controllers.APIResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/proxy.ClientInfo'
+              type: object
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/controllers.APIResponse'
+      security:
+      - ApiKeyAuth: []
+      summary: 获取绿云接口信息
+      tags:
+      - 绿云接口
+  /lvyun/registrations:
+    get:
+      consumes:
+      - application/json
+      description: 获取酒店登记单数据，包括账号、姓名、房型、房号、入住日期、离店日期、主单id等
+      parameters:
+      - description: 酒店代码
+        in: query
+        name: hotel_code
+        required: true
+        type: string
+      - description: '开始日期 (格式: 2025-10-20 00:00:00)'
+        in: query
+        name: start_date
+        required: true
+        type: string
+      - description: '结束日期 (格式: 2025-10-21 00:00:00)'
+        in: query
+        name: end_date
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/controllers.APIResponse'
+            - properties:
+                data:
+                  items:
+                    $ref: '#/definitions/lvyun.RegistrationResponse'
+                  type: array
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/controllers.APIResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/controllers.APIResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/controllers.APIResponse'
+      security:
+      - ApiKeyAuth: []
+      summary: 登记单数据
+      tags:
+      - 绿云接口
+  /lvyun/reservations:
+    get:
+      consumes:
+      - application/json
+      description: 获取酒店预订数据，包括账号、姓名、房型、房号、入住日期、离店日期等
+      parameters:
+      - description: 酒店代码
+        in: query
+        name: hotel_code
+        required: true
+        type: string
+      - description: '开始日期 (格式: 2025-10-20 00:00:00)'
+        in: query
+        name: start_date
+        required: true
+        type: string
+      - description: '结束日期 (格式: 2025-10-21 00:00:00)'
+        in: query
+        name: end_date
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/controllers.APIResponse'
+            - properties:
+                data:
+                  items:
+                    $ref: '#/definitions/lvyun.ReservationResponse'
+                  type: array
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/controllers.APIResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/controllers.APIResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/controllers.APIResponse'
+      security:
+      - ApiKeyAuth: []
+      summary: 预订单数据
+      tags:
+      - 绿云接口
+  /ready:
+    get:
+      consumes:
+      - application/json
+      description: 检查服务是否就绪(验证配置)
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "503":
+          description: Service Unavailable
+          schema:
+            additionalProperties: true
+            type: object
+      summary: 就绪检查
+      tags:
+      - 健康检查
+securityDefinitions:
+  ApiKeyAuth:
+    description: 'API Key认证，也可以使用 Authorization: Bearer <key>'
+    in: header
+    name: X-API-Key
+    type: apiKey
+swagger: "2.0"

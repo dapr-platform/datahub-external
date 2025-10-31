@@ -31,10 +31,6 @@ go.work
 # Logs
 *.log
 
-# Swagger docs (generated)
-docs/docs.go
-docs/swagger.json
-docs/swagger.yaml
 
 ai_docs/
 
