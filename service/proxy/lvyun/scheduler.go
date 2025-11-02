@@ -118,13 +118,17 @@ func (s *Scheduler) syncReservations() {
 	defer cancel()
 
 	// 计算查询日期范围
-	endDate := time.Now()
-	startDate := endDate.AddDate(0, 0, -s.config.QueryDays)
+	now := time.Now()
+	// 开始日期：N天前的00:00:00
+	startDate := now.AddDate(0, 0, -s.config.QueryDays)
+	startDate = time.Date(startDate.Year(), startDate.Month(), startDate.Day(), 0, 0, 0, 0, startDate.Location())
+	// 结束日期：今天的23:59:59
+	endDate := time.Date(now.Year(), now.Month(), now.Day(), 23, 59, 59, 0, now.Location())
 
 	params := map[string]string{
 		"hotel_code": s.config.HotelCode,
-		"start_date": startDate.Format("2006-01-02 00:00:00"),
-		"end_date":   endDate.Format("2006-01-02 23:59:59"),
+		"start_date": startDate.Format("2006-01-02 15:04:05"),
+		"end_date":   endDate.Format("2006-01-02 15:04:05"),
 	}
 
 	// 查询数据
@@ -158,13 +162,17 @@ func (s *Scheduler) syncRegistrations() {
 	defer cancel()
 
 	// 计算查询日期范围
-	endDate := time.Now()
-	startDate := endDate.AddDate(0, 0, -s.config.QueryDays)
+	now := time.Now()
+	// 开始日期：N天前的00:00:00
+	startDate := now.AddDate(0, 0, -s.config.QueryDays)
+	startDate = time.Date(startDate.Year(), startDate.Month(), startDate.Day(), 0, 0, 0, 0, startDate.Location())
+	// 结束日期：今天的23:59:59
+	endDate := time.Date(now.Year(), now.Month(), now.Day(), 23, 59, 59, 0, now.Location())
 
 	params := map[string]string{
 		"hotel_code": s.config.HotelCode,
-		"start_date": startDate.Format("2006-01-02 00:00:00"),
-		"end_date":   endDate.Format("2006-01-02 23:59:59"),
+		"start_date": startDate.Format("2006-01-02 15:04:05"),
+		"end_date":   endDate.Format("2006-01-02 15:04:05"),
 	}
 
 	// 查询数据
@@ -197,8 +205,9 @@ func (s *Scheduler) syncCheckouts() {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
 	defer cancel()
 
-	// 查询今天的数据
-	bizDate := time.Now().Format("2006-01-02 00:00:00")
+	// 查询今天的数据（00:00:00）
+	now := time.Now()
+	bizDate := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, now.Location()).Format("2006-01-02 15:04:05")
 
 	params := map[string]string{
 		"hotel_code": s.config.HotelCode,
@@ -236,13 +245,17 @@ func (s *Scheduler) syncBusinessReports() {
 	defer cancel()
 
 	// 计算查询日期范围
-	endDate := time.Now()
-	startDate := endDate.AddDate(0, 0, -s.config.BusinessReportDays)
+	now := time.Now()
+	// 开始日期：N天前的00:00:00
+	startDate := now.AddDate(0, 0, -s.config.BusinessReportDays)
+	startDate = time.Date(startDate.Year(), startDate.Month(), startDate.Day(), 0, 0, 0, 0, startDate.Location())
+	// 结束日期：今天的23:59:59
+	endDate := time.Date(now.Year(), now.Month(), now.Day(), 23, 59, 59, 0, now.Location())
 
 	params := map[string]string{
 		"hotel_code": s.config.HotelCode,
-		"start_date": startDate.Format("2006-01-02 00:00:00"),
-		"end_date":   endDate.Format("2006-01-02 23:59:59"),
+		"start_date": startDate.Format("2006-01-02 15:04:05"),
+		"end_date":   endDate.Format("2006-01-02 15:04:05"),
 	}
 
 	// 查询数据
