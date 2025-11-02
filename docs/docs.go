@@ -584,6 +584,10 @@ const docTemplate = `{
                     "description": "本月发生-rebate",
                     "type": "number"
                 },
+                "Remark": {
+                    "description": "备注",
+                    "type": "string"
+                },
                 "TaxDay": {
                     "description": "本日发生-税",
                     "type": "number"
@@ -651,6 +655,10 @@ const docTemplate = `{
                 },
                 "NAME": {
                     "description": "姓名",
+                    "type": "string"
+                },
+                "Remark": {
+                    "description": "备注",
                     "type": "string"
                 },
                 "Rmno": {
