@@ -486,88 +486,132 @@ func (c *LvyunClient) postRequest(urlStr string, params map[string]string) ([]by
 	return body, nil
 }
 
-// query 通用查询方法
+// query 通用查询方法（支持自动重新登录）
 func (c *LvyunClient) query(ctx context.Context, exec string, queryParams map[string]string) (interface{}, error) {
-	c.mu.RLock()
-	sessionID := c.sessionID
-	c.mu.RUnlock()
+	// 最多尝试2次：第一次使用现有sessionID，如果失败则重新登录后再试一次
+	maxRetries := 2
+	
+	for attempt := 1; attempt <= maxRetries; attempt++ {
+		c.mu.RLock()
+		sessionID := c.sessionID
+		c.mu.RUnlock()
 
-	if sessionID == "" {
-		slog.Error("查询失败：未登录")
-		return nil, fmt.Errorf("未登录")
-	}
+		if sessionID == "" {
+			slog.Warn("查询时发现未登录，尝试重新登录", "attempt", attempt)
+			if err := c.login(); err != nil {
+				slog.Error("重新登录失败", "error", err, "attempt", attempt)
+				if attempt == maxRetries {
+					return nil, fmt.Errorf("重新登录失败: %v", err)
+				}
+				continue
+			}
+			// 登录成功后，更新sessionID
+			c.mu.RLock()
+			sessionID = c.sessionID
+			c.mu.RUnlock()
+		}
 
-	// 构建查询参数
-	params := map[string]string{
-		"method":         "crs.kpi",
-		"v":              "3.0",
-		"format":         "json",
-		"local":          "zh_CN",
-		"appKey":         c.config.AppKey,
-		"sessionId":      sessionID,
-		"hotelGroupCode": c.config.HotelGroupCode,
-		"exec":           exec,
-	}
+		// 构建查询参数
+		params := map[string]string{
+			"method":         "crs.kpi",
+			"v":              "3.0",
+			"format":         "json",
+			"local":          "zh_CN",
+			"appKey":         c.config.AppKey,
+			"sessionId":      sessionID,
+			"hotelGroupCode": c.config.HotelGroupCode,
+			"exec":           exec,
+		}
 
-	// 添加额外参数
-	for key, value := range queryParams {
-		params[key] = value
-	}
+		// 添加额外参数
+		for key, value := range queryParams {
+			params[key] = value
+		}
 
-	slog.Info("绿云查询请求",
-		"exec", exec,
-		"hotel_group_code", c.config.HotelGroupCode,
-		"params", queryParams)
-
-	// 计算签名
-	sign := c.calculateSign(params)
-	params["sign"] = sign
-
-	slog.Debug("查询请求签名", "sign", sign)
-
-	// 发送请求
-	resp, err := c.postRequest(c.config.BaseURL+"/ipmsgroup/router", params)
-	if err != nil {
-		slog.Error("查询请求失败", "exec", exec, "error", err)
-		return nil, err
-	}
-
-	slog.Debug("查询响应", "exec", exec, "response", string(resp))
-
-	var queryResp QueryResponse
-	if err := json.Unmarshal(resp, &queryResp); err != nil {
-		slog.Error("解析查询响应失败",
+		slog.Info("绿云查询请求",
 			"exec", exec,
-			"error", err,
-			"response", string(resp))
-		return nil, fmt.Errorf("解析查询响应失败: %v", err)
-	}
+			"hotel_group_code", c.config.HotelGroupCode,
+			"params", queryParams,
+			"attempt", attempt)
 
-	if queryResp.ResultCode != 0 {
-		slog.Error("查询失败",
-			"exec", exec,
-			"result_code", queryResp.ResultCode,
-			"result_msg", queryResp.ResultMsg)
-		return nil, fmt.Errorf("查询失败: %s", queryResp.ResultMsg)
-	}
+		// 计算签名
+		sign := c.calculateSign(params)
+		params["sign"] = sign
 
-	// 解析resultInfo为数组
-	var resultData []interface{}
-	if len(queryResp.ResultInfo) > 0 {
-		if err := json.Unmarshal(queryResp.ResultInfo, &resultData); err != nil {
-			slog.Error("解析ResultInfo失败",
+		slog.Debug("查询请求签名", "sign", sign)
+
+		// 发送请求
+		resp, err := c.postRequest(c.config.BaseURL+"/ipmsgroup/router", params)
+		if err != nil {
+			slog.Error("查询请求失败", "exec", exec, "error", err, "attempt", attempt)
+			return nil, err
+		}
+
+		slog.Debug("查询响应", "exec", exec, "response", string(resp))
+
+		var queryResp QueryResponse
+		if err := json.Unmarshal(resp, &queryResp); err != nil {
+			slog.Error("解析查询响应失败",
 				"exec", exec,
 				"error", err,
-				"resultInfo", string(queryResp.ResultInfo))
-			return nil, fmt.Errorf("解析ResultInfo失败: %v", err)
+				"response", string(resp),
+				"attempt", attempt)
+			return nil, fmt.Errorf("解析查询响应失败: %v", err)
 		}
+
+		if queryResp.ResultCode != 0 {
+			// 检查是否为未登录错误
+			if strings.Contains(queryResp.ResultMsg, "未登录") || 
+			   strings.Contains(queryResp.ResultMsg, "登录") ||
+			   strings.Contains(queryResp.ResultMsg, "session") {
+				slog.Warn("检测到登录失效",
+					"exec", exec,
+					"result_code", queryResp.ResultCode,
+					"result_msg", queryResp.ResultMsg,
+					"attempt", attempt)
+				
+				// 清空sessionID
+				c.mu.Lock()
+				c.sessionID = ""
+				c.mu.Unlock()
+				
+				// 如果还有重试机会，继续重试
+				if attempt < maxRetries {
+					slog.Info("将在下一次尝试中重新登录", "attempt", attempt+1)
+					continue
+				}
+			}
+			
+			slog.Error("查询失败",
+				"exec", exec,
+				"result_code", queryResp.ResultCode,
+				"result_msg", queryResp.ResultMsg,
+				"attempt", attempt)
+			return nil, fmt.Errorf("查询失败: %s", queryResp.ResultMsg)
+		}
+
+		// 解析resultInfo为数组
+		var resultData []interface{}
+		if len(queryResp.ResultInfo) > 0 {
+			if err := json.Unmarshal(queryResp.ResultInfo, &resultData); err != nil {
+				slog.Error("解析ResultInfo失败",
+					"exec", exec,
+					"error", err,
+					"resultInfo", string(queryResp.ResultInfo),
+					"attempt", attempt)
+				return nil, fmt.Errorf("解析ResultInfo失败: %v", err)
+			}
+		}
+
+		slog.Info("查询成功",
+			"exec", exec,
+			"result_count", len(resultData),
+			"attempt", attempt)
+
+		return resultData, nil
 	}
-
-	slog.Info("查询成功",
-		"exec", exec,
-		"result_count", len(resultData))
-
-	return resultData, nil
+	
+	return nil, fmt.Errorf("查询失败：已达最大重试次数")
 }
 
 // queryReservations 预订单数据
