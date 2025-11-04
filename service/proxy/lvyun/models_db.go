@@ -9,8 +9,8 @@ import (
 // LvyunReservation 预订单数据模型
 type LvyunReservation struct {
 	ID             uint           `gorm:"primarykey" json:"id"`
-	CreatedAt      time.Time      `json:"created_at"`
-	UpdatedAt      time.Time      `json:"updated_at"`
+	CreatedAt      time.Time      `gorm:"type:timestamp(0)" json:"created_at"`
+	UpdatedAt      time.Time      `gorm:"type:timestamp(0)" json:"updated_at"`
 	DeletedAt      gorm.DeletedAt `gorm:"index" json:"deleted_at,omitempty"`
 	HotelCode      string         `gorm:"size:50;index" json:"hotel_code"`        // 酒店代码
 	HotelName      string         `gorm:"size:200" json:"hotel_name"`             // 酒店名称
@@ -41,8 +41,8 @@ func (LvyunReservation) TableName() string {
 // LvyunRegistration 登记单数据模型
 type LvyunRegistration struct {
 	ID             uint           `gorm:"primarykey" json:"id"`
-	CreatedAt      time.Time      `json:"created_at"`
-	UpdatedAt      time.Time      `json:"updated_at"`
+	CreatedAt      time.Time      `gorm:"type:timestamp(0)" json:"created_at"`
+	UpdatedAt      time.Time      `gorm:"type:timestamp(0)" json:"updated_at"`
 	DeletedAt      gorm.DeletedAt `gorm:"index" json:"deleted_at,omitempty"`
 	HotelCode      string         `gorm:"size:50;index" json:"hotel_code"`        // 酒店代码
 	HotelName      string         `gorm:"size:200" json:"hotel_name"`             // 酒店名称
@@ -74,8 +74,8 @@ func (LvyunRegistration) TableName() string {
 // LvyunCheckout 结账单数据模型
 type LvyunCheckout struct {
 	ID        uint           `gorm:"primarykey" json:"id"`
-	CreatedAt time.Time      `json:"created_at"`
-	UpdatedAt time.Time      `json:"updated_at"`
+	CreatedAt time.Time      `gorm:"type:timestamp(0)" json:"created_at"`
+	UpdatedAt time.Time      `gorm:"type:timestamp(0)" json:"updated_at"`
 	DeletedAt gorm.DeletedAt `gorm:"index" json:"deleted_at,omitempty"`
 	HotelCode string         `gorm:"size:50;index" json:"hotel_code"`        // 酒店代码
 	HotelName string         `gorm:"size:200" json:"hotel_name"`             // 酒店名称
@@ -102,8 +102,8 @@ func (LvyunCheckout) TableName() string {
 // LvyunBusinessReport 营业报表数据模型
 type LvyunBusinessReport struct {
 	ID          uint           `gorm:"primarykey" json:"id"`
-	CreatedAt   time.Time      `json:"created_at"`
-	UpdatedAt   time.Time      `json:"updated_at"`
+	CreatedAt   time.Time      `gorm:"type:timestamp(0)" json:"created_at"`
+	UpdatedAt   time.Time      `gorm:"type:timestamp(0)" json:"updated_at"`
 	DeletedAt   gorm.DeletedAt `gorm:"index" json:"deleted_at,omitempty"`
 	HotelCode   string         `gorm:"size:50;index" json:"hotel_code"`        // 酒店代码
 	HotelName   string         `gorm:"size:200" json:"hotel_name"`             // 酒店名称
