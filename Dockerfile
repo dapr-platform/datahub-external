@@ -13,9 +13,9 @@ COPY . .
 RUN go build -ldflags "-s -w" -o datahub-external && upx -9 datahub-external
 
 FROM alpine:3.19
+# 保留 tzdata 包以确保时区正确解析
 RUN  apk add --no-cache tzdata && cp /usr/share/zoneinfo/Asia/Shanghai /etc/localtime \
     && echo "Asia/Shanghai" > /etc/timezone \
-    && apk del tzdata \
     && rm -rf /var/cache/apk/* \
     && rm -rf /root/.cache \
     && rm -rf /tmp/*
