@@ -4,6 +4,7 @@ import (
 	"datahub-external/service/config"
 	"datahub-external/service/proxy"
 	"datahub-external/service/proxy/lvyun"
+	"datahub-external/service/proxy/ps"
 	"fmt"
 	"log/slog"
 	"os"
@@ -81,5 +82,30 @@ func init() {
 		}
 	} else {
 		slog.Warn("绿云配置未设置,跳过初始化")
+	}
+
+	// 初始化PS客户端(如果配置了)
+	if cfg.PS.AppKey != "" && cfg.PS.AppSecret != "" {
+		psConfig := ps.PSConfig{
+			AppKey:           cfg.PS.AppKey,
+			AppSecret:        cfg.PS.AppSecret,
+			Stage:            cfg.PS.Stage,
+			BaseURL:          cfg.PS.BaseURL,
+			EnableScheduler:  cfg.PS.EnableScheduler,
+			FamilyMemberCron: cfg.PS.FamilyMemberCron,
+			PageSize:         cfg.PS.PageSize,
+			MaxPages:         cfg.PS.MaxPages,
+		}
+		psClient := ps.NewPSClientWithConfig(psConfig, db)
+		if err := proxy.GetGlobalRegistry().Register(psClient); err != nil {
+			slog.Error("注册PS客户端失败", "error", err)
+		} else {
+			slog.Info("PS客户端注册成功",
+				"base_url", cfg.PS.BaseURL,
+				"stage", cfg.PS.Stage,
+				"scheduler_enabled", cfg.PS.EnableScheduler)
+		}
+	} else {
+		slog.Warn("PS配置未设置,跳过初始化")
 	}
 }

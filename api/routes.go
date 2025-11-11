@@ -54,6 +54,15 @@ func InitRoute(r *chi.Mux) {
 		r.Get("/business-report", lvyunController.GetBusinessReport)
 	})
 
+	// PS系统接口(需要认证)
+	psController := controllers.NewPSController(proxy.GetGlobalRegistry())
+	r.Route("/ps", func(r chi.Router) {
+		r.Get("/health", psController.HealthCheck)
+		r.Get("/info", psController.GetInfo)
+		r.Get("/family-members", psController.GetFamilyMembers)
+		r.Post("/trigger-sync", psController.TriggerSync)
+	})
+
 	// 404处理
 	r.NotFound(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusNotFound)

@@ -534,6 +534,138 @@ paths:
       summary: 预订单数据
       tags:
       - 绿云接口
+  /ps/family-members:
+    get:
+      consumes:
+      - application/json
+      description: 获取PS系统家族成员信息，支持分页查询
+      parameters:
+      - description: '分区字段 (格式: YYYYMMDD，示例: 20251013)'
+        in: query
+        name: ds
+        required: true
+        type: string
+      - description: '页编号 (默认: 1)'
+        in: query
+        name: page_num
+        type: integer
+      - description: '页大小 (默认: 100，最大: 2000)'
+        in: query
+        name: page_size
+        type: integer
+      - description: 员工ID
+        in: query
+        name: emplid
+        type: string
+      - description: '是否保存到数据库 (默认: true)'
+        in: query
+        name: save_db
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/controllers.APIResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/controllers.APIResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/controllers.APIResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/controllers.APIResponse'
+      security:
+      - ApiKeyAuth: []
+      summary: 家族成员数据
+      tags:
+      - PS接口
+  /ps/health:
+    get:
+      consumes:
+      - application/json
+      description: 检查PS接口连接状态
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/controllers.APIResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/controllers.APIResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/controllers.APIResponse'
+      security:
+      - ApiKeyAuth: []
+      summary: PS接口健康检查
+      tags:
+      - PS接口
+  /ps/info:
+    get:
+      consumes:
+      - application/json
+      description: 返回PS接口的基本信息和状态
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/controllers.APIResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/proxy.ClientInfo'
+              type: object
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/controllers.APIResponse'
+      security:
+      - ApiKeyAuth: []
+      summary: 获取PS接口信息
+      tags:
+      - PS接口
+  /ps/trigger-sync:
+    post:
+      consumes:
+      - application/json
+      description: 手动触发PS系统数据同步任务
+      parameters:
+      - description: '数据类型 (family-members/all，默认: family-members)'
+        in: query
+        name: data_type
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/controllers.APIResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/controllers.APIResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/controllers.APIResponse'
+      security:
+      - ApiKeyAuth: []
+      summary: 手动触发数据同步
+      tags:
+      - PS接口
   /ready:
     get:
       consumes:
