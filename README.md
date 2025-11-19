@@ -90,11 +90,11 @@ swag init --parseDependency --parseInternal --parseDepth 1
 ```bash
 export API_KEY=your-api-key
 export LVYUN_BASE_URL=http://your-lvyun-server:port
-export LVYUN_HOTEL_GROUP_CODE=MHZSQG
-export LVYUN_USER_CODE=yjyMHZSQGKPI
-export LVYUN_PASSWORD=yjyMHZSQGKPI
-export LVYUN_APP_KEY=40130
-export LVYUN_APP_SECRET=7009544c428b8118ac593d5d1f5118d9
+export LVYUN_HOTEL_GROUP_CODE=YOUR_HOTEL_GROUP_CODE
+export LVYUN_USER_CODE=YOUR_USER_CODE
+export LVYUN_PASSWORD=YOUR_PASSWORD
+export LVYUN_APP_KEY=YOUR_APP_KEY
+export LVYUN_APP_SECRET=YOUR_APP_SECRET
 ```
 
 5. **启动服务**
@@ -126,11 +126,11 @@ docker run -d \
   -p 8080:80 \
   -e API_KEY=your-api-key \
   -e LVYUN_BASE_URL=http://your-lvyun-server:port \
-  -e LVYUN_HOTEL_GROUP_CODE=MHZSQG \
-  -e LVYUN_USER_CODE=yjyMHZSQGKPI \
-  -e LVYUN_PASSWORD=yjyMHZSQGKPI \
-  -e LVYUN_APP_KEY=40130 \
-  -e LVYUN_APP_SECRET=7009544c428b8118ac593d5d1f5118d9 \
+  -e LVYUN_HOTEL_GROUP_CODE=YOUR_HOTEL_GROUP_CODE \
+  -e LVYUN_USER_CODE=YOUR_USER_CODE \
+  -e LVYUN_PASSWORD=YOUR_PASSWORD \
+  -e LVYUN_APP_KEY=YOUR_APP_KEY \
+  -e LVYUN_APP_SECRET=YOUR_APP_SECRET \
   --name datahub-external \
   datahub-external:latest
 ```

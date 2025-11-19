@@ -34,14 +34,22 @@ type LvyunConfig struct {
 
 // PSConfig PS系统配置
 type PSConfig struct {
-	BaseURL          string
-	AppKey           string
-	AppSecret        string
-	Stage            string
-	EnableScheduler  bool
-	FamilyMemberCron string
-	PageSize         int
-	MaxPages         int
+	BaseURL             string
+	AppKey              string
+	AppSecret           string
+	Stage               string
+	EnableScheduler     bool
+	FamilyMemberCron    string
+	PositionIncCron     string
+	PositionAllCron     string
+	OrganizationIncCron string
+	OrganizationAllCron string
+	EmployeeIncCron     string
+	EmployeeAllCron     string
+	EmployeeHonorCron   string
+	FamilyMainCron      string
+	PageSize            int
+	MaxPages            int
 }
 
 // DatabaseConfig 数据库配置
@@ -75,14 +83,22 @@ func LoadConfig() *Config {
 			BusinessReportDays: getEnvInt("LVYUN_BUSINESS_REPORT_DAYS", 1),
 		},
 		PS: PSConfig{
-			BaseURL:          getEnv("PS_BASE_URL", "https://datadisclose.hdlapis.com"),
-			AppKey:           getEnv("PS_APP_KEY", ""),
-			AppSecret:        getEnv("PS_APP_SECRET", ""),
-			Stage:            getEnv("PS_STAGE", "RELEASE"),
-			EnableScheduler:  getEnvBool("PS_ENABLE_SCHEDULER", true),
-			FamilyMemberCron: getEnv("PS_FAMILY_MEMBER_CRON", "0 0 2 * * *"), // 每天凌晨2点
-			PageSize:         getEnvInt("PS_PAGE_SIZE", 2000),                // API最大支持2000
-			MaxPages:         getEnvInt("PS_MAX_PAGES", 1000),                // 最多查询1000页
+			BaseURL:             getEnv("PS_BASE_URL", "https://datadisclose.hdlapis.com"),
+			AppKey:              getEnv("PS_APP_KEY", ""),
+			AppSecret:           getEnv("PS_APP_SECRET", ""),
+			Stage:               getEnv("PS_STAGE", "RELEASE"),
+			EnableScheduler:     getEnvBool("PS_ENABLE_SCHEDULER", true),
+			FamilyMemberCron:    getEnv("PS_FAMILY_MEMBER_CRON", "0 0 2 * * *"),     // 每天凌晨2点
+			PositionIncCron:     getEnv("PS_POSITION_INC_CRON", "0 30 4 * * *"),     // 每天凌晨4:30
+			PositionAllCron:     getEnv("PS_POSITION_ALL_CRON", "0 30 3 * * 0"),     // 每周日凌晨3:30
+			OrganizationIncCron: getEnv("PS_ORGANIZATION_INC_CRON", "0 30 4 * * *"), // 每天凌晨4:30
+			OrganizationAllCron: getEnv("PS_ORGANIZATION_ALL_CRON", "0 30 3 * * 0"), // 每周日凌晨3:30
+			EmployeeIncCron:     getEnv("PS_EMPLOYEE_INC_CRON", "0 30 4 * * *"),     // 每天凌晨4:30
+			EmployeeAllCron:     getEnv("PS_EMPLOYEE_ALL_CRON", "0 30 3 * * 0"),     // 每周日凌晨3:30
+			EmployeeHonorCron:   getEnv("PS_EMPLOYEE_HONOR_CRON", "0 30 3 * * 0"),   // 每周日凌晨3:30
+			FamilyMainCron:      getEnv("PS_FAMILY_MAIN_CRON", "0 30 3 * * 0"),      // 每周日凌晨3:30
+			PageSize:            getEnvInt("PS_PAGE_SIZE", 2000),                    // API最大支持2000
+			MaxPages:            getEnvInt("PS_MAX_PAGES", 1000),                    // 最多查询1000页
 		},
 		Database: DatabaseConfig{
 			Host:     getEnv("DB_HOST", "localhost"),

@@ -242,5 +242,265 @@ func (c *PSController) TriggerSync(w http.ResponseWriter, r *http.Request) {
 		"message":   "同步任务已触发",
 		"data_type": dataType,
 	})
+}
 
+// GetPositionsInc 获取岗位增量数据
+// @Summary 岗位增量数据
+// @Description 获取PS系统岗位增量信息，支持分页查询
+// @Tags PS接口
+// @Accept json
+// @Produce json
+// @Param ds query string true "分区字段 (格式: YYYYMMDD，示例: 20251113)"
+// @Param page_num query int false "页编号 (默认: 1)"
+// @Param page_size query int false "页大小 (默认: 100，最大: 2000)"
+// @Param save_db query string false "是否保存到数据库 (默认: true)"
+// @Success 200 {object} APIResponse
+// @Failure 400 {object} APIResponse
+// @Failure 404 {object} APIResponse
+// @Failure 500 {object} APIResponse
+// @Security ApiKeyAuth
+// @Router /ps/positions-inc [get]
+func (c *PSController) GetPositionsInc(w http.ResponseWriter, r *http.Request) {
+	c.handleDataRequest(w, r, "/positions-inc", "岗位增量")
+}
+
+// GetPositionsAll 获取岗位全量数据
+// @Summary 岗位全量数据
+// @Description 获取PS系统岗位全量信息，支持分页查询
+// @Tags PS接口
+// @Accept json
+// @Produce json
+// @Param ds query string true "分区字段 (格式: YYYYMMDD，示例: 20251113)"
+// @Param page_num query int false "页编号 (默认: 1)"
+// @Param page_size query int false "页大小 (默认: 100，最大: 2000)"
+// @Param save_db query string false "是否保存到数据库 (默认: true)"
+// @Success 200 {object} APIResponse
+// @Failure 400 {object} APIResponse
+// @Failure 404 {object} APIResponse
+// @Failure 500 {object} APIResponse
+// @Security ApiKeyAuth
+// @Router /ps/positions-all [get]
+func (c *PSController) GetPositionsAll(w http.ResponseWriter, r *http.Request) {
+	c.handleDataRequest(w, r, "/positions-all", "岗位全量")
+}
+
+// GetOrganizationsInc 获取组织增量数据
+// @Summary 组织增量数据
+// @Description 获取PS系统组织增量信息，支持分页查询
+// @Tags PS接口
+// @Accept json
+// @Produce json
+// @Param ds query string true "分区字段 (格式: YYYYMMDD，示例: 20251113)"
+// @Param page_num query int false "页编号 (默认: 1)"
+// @Param page_size query int false "页大小 (默认: 100，最大: 2000)"
+// @Param save_db query string false "是否保存到数据库 (默认: true)"
+// @Success 200 {object} APIResponse
+// @Failure 400 {object} APIResponse
+// @Failure 404 {object} APIResponse
+// @Failure 500 {object} APIResponse
+// @Security ApiKeyAuth
+// @Router /ps/organizations-inc [get]
+func (c *PSController) GetOrganizationsInc(w http.ResponseWriter, r *http.Request) {
+	c.handleDataRequest(w, r, "/organizations-inc", "组织增量")
+}
+
+// GetOrganizationsAll 获取组织全量数据
+// @Summary 组织全量数据
+// @Description 获取PS系统组织全量信息，支持分页查询
+// @Tags PS接口
+// @Accept json
+// @Produce json
+// @Param ds query string true "分区字段 (格式: YYYYMMDD，示例: 20251113)"
+// @Param page_num query int false "页编号 (默认: 1)"
+// @Param page_size query int false "页大小 (默认: 100，最大: 2000)"
+// @Param save_db query string false "是否保存到数据库 (默认: true)"
+// @Success 200 {object} APIResponse
+// @Failure 400 {object} APIResponse
+// @Failure 404 {object} APIResponse
+// @Failure 500 {object} APIResponse
+// @Security ApiKeyAuth
+// @Router /ps/organizations-all [get]
+func (c *PSController) GetOrganizationsAll(w http.ResponseWriter, r *http.Request) {
+	c.handleDataRequest(w, r, "/organizations-all", "组织全量")
+}
+
+// GetEmployeesInc 获取员工增量数据
+// @Summary 员工增量数据
+// @Description 获取PS系统员工增量信息，支持分页查询
+// @Tags PS接口
+// @Accept json
+// @Produce json
+// @Param ds query string true "分区字段 (格式: YYYYMMDD，示例: 20251113)"
+// @Param page_num query int false "页编号 (默认: 1)"
+// @Param page_size query int false "页大小 (默认: 100，最大: 2000)"
+// @Param emplid query string false "员工ID"
+// @Param save_db query string false "是否保存到数据库 (默认: true)"
+// @Success 200 {object} APIResponse
+// @Failure 400 {object} APIResponse
+// @Failure 404 {object} APIResponse
+// @Failure 500 {object} APIResponse
+// @Security ApiKeyAuth
+// @Router /ps/employees-inc [get]
+func (c *PSController) GetEmployeesInc(w http.ResponseWriter, r *http.Request) {
+	c.handleDataRequest(w, r, "/employees-inc", "员工增量")
+}
+
+// GetEmployeesAll 获取员工全量数据
+// @Summary 员工全量数据
+// @Description 获取PS系统员工全量信息，支持分页查询
+// @Tags PS接口
+// @Accept json
+// @Produce json
+// @Param ds query string true "分区字段 (格式: YYYYMMDD，示例: 20251113)"
+// @Param page_num query int false "页编号 (默认: 1)"
+// @Param page_size query int false "页大小 (默认: 100，最大: 2000)"
+// @Param emplid query string false "员工ID"
+// @Param save_db query string false "是否保存到数据库 (默认: true)"
+// @Success 200 {object} APIResponse
+// @Failure 400 {object} APIResponse
+// @Failure 404 {object} APIResponse
+// @Failure 500 {object} APIResponse
+// @Security ApiKeyAuth
+// @Router /ps/employees-all [get]
+func (c *PSController) GetEmployeesAll(w http.ResponseWriter, r *http.Request) {
+	c.handleDataRequest(w, r, "/employees-all", "员工全量")
+}
+
+// GetEmployeeHonors 获取员工荣誉数据
+// @Summary 员工荣誉数据
+// @Description 获取PS系统员工荣誉信息，支持分页查询
+// @Tags PS接口
+// @Accept json
+// @Produce json
+// @Param ds query string true "分区字段 (格式: YYYYMMDD，示例: 20251113)"
+// @Param page_num query int false "页编号 (默认: 1)"
+// @Param page_size query int false "页大小 (默认: 100，最大: 2000)"
+// @Param emplid query string false "员工ID"
+// @Param save_db query string false "是否保存到数据库 (默认: true)"
+// @Success 200 {object} APIResponse
+// @Failure 400 {object} APIResponse
+// @Failure 404 {object} APIResponse
+// @Failure 500 {object} APIResponse
+// @Security ApiKeyAuth
+// @Router /ps/employee-honors [get]
+func (c *PSController) GetEmployeeHonors(w http.ResponseWriter, r *http.Request) {
+	c.handleDataRequest(w, r, "/employee-honors", "员工荣誉")
+}
+
+// GetFamilyMain 获取家族父表数据
+// @Summary 家族父表数据
+// @Description 获取PS系统家族父表信息，支持分页查询
+// @Tags PS接口
+// @Accept json
+// @Produce json
+// @Param ds query string true "分区字段 (格式: YYYYMMDD，示例: 20251113)"
+// @Param page_num query int false "页编号 (默认: 1)"
+// @Param page_size query int false "页大小 (默认: 100，最大: 2000)"
+// @Param emplid query string false "员工ID"
+// @Param save_db query string false "是否保存到数据库 (默认: true)"
+// @Success 200 {object} APIResponse
+// @Failure 400 {object} APIResponse
+// @Failure 404 {object} APIResponse
+// @Failure 500 {object} APIResponse
+// @Security ApiKeyAuth
+// @Router /ps/family-main [get]
+func (c *PSController) GetFamilyMain(w http.ResponseWriter, r *http.Request) {
+	c.handleDataRequest(w, r, "/family-main", "家族父表")
+}
+
+// handleDataRequest 通用数据请求处理方法
+func (c *PSController) handleDataRequest(w http.ResponseWriter, r *http.Request, path, dataName string) {
+	ds := r.URL.Query().Get("ds")
+	pageNumStr := r.URL.Query().Get("page_num")
+	pageSizeStr := r.URL.Query().Get("page_size")
+	emplID := r.URL.Query().Get("emplid")
+	saveDB := r.URL.Query().Get("save_db")
+
+	// 验证必需参数
+	if ds == "" {
+		RespondError(w, r, http.StatusBadRequest, "缺少分区字段参数(ds)")
+		return
+	}
+
+	// 解析分页参数
+	pageNum := 1
+	if pageNumStr != "" {
+		if n, err := strconv.Atoi(pageNumStr); err == nil && n > 0 {
+			pageNum = n
+		}
+	}
+
+	pageSize := 100
+	if pageSizeStr != "" {
+		if n, err := strconv.Atoi(pageSizeStr); err == nil && n > 0 {
+			if n > 2000 {
+				n = 2000 // API最大限制
+			}
+			pageSize = n
+		}
+	}
+
+	// 获取PS客户端
+	client, err := c.registry.GetClient("ps")
+	if err != nil {
+		RespondError(w, r, http.StatusNotFound, "PS客户端未注册")
+		return
+	}
+
+	// 构建参数
+	params := map[string]string{
+		"ds":        ds,
+		"page_num":  fmt.Sprintf("%d", pageNum),
+		"page_size": fmt.Sprintf("%d", pageSize),
+	}
+	if emplID != "" {
+		params["emplid"] = emplID
+	}
+
+	// 查询数据
+	slog.Info(fmt.Sprintf("PS控制器查询%s", dataName),
+		"ds", ds,
+		"page_num", pageNum,
+		"page_size", pageSize,
+		"emplid", emplID)
+
+	result, err := client.HandleRequest(r.Context(), path, params)
+	if err != nil {
+		slog.Error(fmt.Sprintf("查询%s失败", dataName), "error", err)
+		RespondError(w, r, http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	// 默认保存到数据库（除非明确指定save_db=false）
+	if saveDB != "false" {
+		// 根据path确定调用哪个Save方法
+		psClient, ok := client.(*ps.PSClient)
+		if ok {
+			var saveErr error
+			switch path {
+			case "/positions-inc", "/positions-all":
+				saveErr = psClient.SavePositionsToDB(r.Context(), result, ds, path == "/positions-inc")
+			case "/organizations-inc", "/organizations-all":
+				saveErr = psClient.SaveOrganizationsToDB(r.Context(), result, ds, path == "/organizations-inc")
+			case "/employees-inc", "/employees-all":
+				saveErr = psClient.SaveEmployeesToDB(r.Context(), result, ds, path == "/employees-inc")
+			case "/employee-honors":
+				saveErr = psClient.SaveEmployeeHonorsToDB(r.Context(), result, ds)
+			case "/family-main":
+				saveErr = psClient.SaveFamilyMainToDB(r.Context(), result, ds)
+			}
+
+			if saveErr != nil {
+				slog.Error(fmt.Sprintf("保存%s到数据库失败", dataName), "error", saveErr)
+				RespondSuccess(w, r, map[string]interface{}{
+					"data":    result,
+					"message": fmt.Sprintf("数据查询成功，但保存到数据库失败: %s", saveErr.Error()),
+				})
+				return
+			}
+			slog.Info(fmt.Sprintf("保存%s到数据库成功", dataName))
+		}
+	}
+
+	RespondSuccess(w, r, result)
 }

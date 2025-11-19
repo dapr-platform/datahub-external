@@ -205,6 +205,22 @@ func (c *PSClient) HandleRequest(ctx context.Context, path string, params map[st
 	switch path {
 	case "/family-members":
 		return c.queryFamilyMembersWithParams(ctx, params)
+	case "/positions-inc":
+		return c.queryPositionsIncWithParams(ctx, params)
+	case "/positions-all":
+		return c.queryPositionsAllWithParams(ctx, params)
+	case "/organizations-inc":
+		return c.queryOrganizationsIncWithParams(ctx, params)
+	case "/organizations-all":
+		return c.queryOrganizationsAllWithParams(ctx, params)
+	case "/employees-inc":
+		return c.queryEmployeesIncWithParams(ctx, params)
+	case "/employees-all":
+		return c.queryEmployeesAllWithParams(ctx, params)
+	case "/employee-honors":
+		return c.queryEmployeeHonorsWithParams(ctx, params)
+	case "/family-main":
+		return c.queryFamilyMainWithParams(ctx, params)
 	default:
 		return nil, fmt.Errorf("不支持的路径: %s", path)
 	}
@@ -333,6 +349,534 @@ func (c *PSClient) SaveFamilyMembersToDB(ctx interface{}, data interface{}, ds s
 	}
 
 	return c.repository.SaveFamilyMembers(ctxTyped, dataArray, ds)
+}
+
+// queryPositionsIncWithParams 根据参数查询岗位增量数据
+func (c *PSClient) queryPositionsIncWithParams(ctx context.Context, params map[string]string) (interface{}, error) {
+	pageNum := 1
+	pageSize := 100
+	ds := params["ds"]
+
+	if params["page_num"] != "" {
+		fmt.Sscanf(params["page_num"], "%d", &pageNum)
+	}
+	if params["page_size"] != "" {
+		fmt.Sscanf(params["page_size"], "%d", &pageSize)
+	}
+
+	return c.QueryPositions(ctx, pageNum, pageSize, ds, true)
+}
+
+// queryPositionsAllWithParams 根据参数查询岗位全量数据
+func (c *PSClient) queryPositionsAllWithParams(ctx context.Context, params map[string]string) (interface{}, error) {
+	pageNum := 1
+	pageSize := 100
+	ds := params["ds"]
+
+	if params["page_num"] != "" {
+		fmt.Sscanf(params["page_num"], "%d", &pageNum)
+	}
+	if params["page_size"] != "" {
+		fmt.Sscanf(params["page_size"], "%d", &pageSize)
+	}
+
+	return c.QueryPositions(ctx, pageNum, pageSize, ds, false)
+}
+
+// QueryPositions 查询岗位信息
+func (c *PSClient) QueryPositions(ctx context.Context, pageNum, pageSize int, ds string, isIncremental bool) ([]interface{}, error) {
+	var apiPath string
+	if isIncremental {
+		apiPath = "/ps/ps_int_pos_inc"
+	} else {
+		apiPath = "/ps/ps_int_pos_all"
+	}
+	url := fmt.Sprintf("%s%s", c.baseURL, apiPath)
+
+	queryParams := map[string]string{
+		"pageNum":  fmt.Sprintf("%d", pageNum),
+		"pageSize": fmt.Sprintf("%d", pageSize),
+		"ds":       ds,
+	}
+
+	slog.Info("查询PS岗位信息",
+		"url", url,
+		"page_num", pageNum,
+		"page_size", pageSize,
+		"ds", ds,
+		"incremental", isIncremental)
+
+	result, err := c.Post(ctx, url, &RequestOptions{
+		Query: queryParams,
+	})
+
+	if err != nil {
+		slog.Error("查询岗位信息失败", "error", err, "url", url)
+		return nil, err
+	}
+
+	var apiResp PositionPaginationResponse
+	jsonData, err := json.Marshal(result)
+	if err != nil {
+		return nil, fmt.Errorf("序列化响应失败: %v", err)
+	}
+
+	if err := json.Unmarshal(jsonData, &apiResp); err != nil {
+		return nil, fmt.Errorf("解析响应失败: %v", err)
+	}
+
+	if apiResp.ErrCode != 0 {
+		return nil, fmt.Errorf("API返回错误: %s (errCode: %d)", apiResp.ErrMsg, apiResp.ErrCode)
+	}
+
+	records := make([]interface{}, 0, len(apiResp.Data.Rows))
+	for _, record := range apiResp.Data.Rows {
+		records = append(records, record)
+	}
+
+	slog.Info("查询岗位信息成功",
+		"count", len(records),
+		"total_num", apiResp.Data.TotalNum,
+		"page_num", pageNum,
+		"request_id", apiResp.RequestID)
+
+	return records, nil
+}
+
+// SavePositionsToDB 保存岗位数据到数据库
+func (c *PSClient) SavePositionsToDB(ctx interface{}, data interface{}, ds string, isIncremental bool) error {
+	if c.repository == nil {
+		return fmt.Errorf("数据库未配置")
+	}
+
+	dataArray, ok := data.([]interface{})
+	if !ok {
+		return fmt.Errorf("数据格式错误")
+	}
+
+	ctxTyped, ok := ctx.(context.Context)
+	if !ok {
+		ctxTyped = context.Background()
+	}
+
+	return c.repository.SavePositions(ctxTyped, dataArray, ds)
+}
+
+// queryOrganizationsIncWithParams 根据参数查询组织增量数据
+func (c *PSClient) queryOrganizationsIncWithParams(ctx context.Context, params map[string]string) (interface{}, error) {
+	pageNum := 1
+	pageSize := 100
+	ds := params["ds"]
+
+	if params["page_num"] != "" {
+		fmt.Sscanf(params["page_num"], "%d", &pageNum)
+	}
+	if params["page_size"] != "" {
+		fmt.Sscanf(params["page_size"], "%d", &pageSize)
+	}
+
+	return c.QueryOrganizations(ctx, pageNum, pageSize, ds, true)
+}
+
+// queryOrganizationsAllWithParams 根据参数查询组织全量数据
+func (c *PSClient) queryOrganizationsAllWithParams(ctx context.Context, params map[string]string) (interface{}, error) {
+	pageNum := 1
+	pageSize := 100
+	ds := params["ds"]
+
+	if params["page_num"] != "" {
+		fmt.Sscanf(params["page_num"], "%d", &pageNum)
+	}
+	if params["page_size"] != "" {
+		fmt.Sscanf(params["page_size"], "%d", &pageSize)
+	}
+
+	return c.QueryOrganizations(ctx, pageNum, pageSize, ds, false)
+}
+
+// QueryOrganizations 查询组织信息
+func (c *PSClient) QueryOrganizations(ctx context.Context, pageNum, pageSize int, ds string, isIncremental bool) ([]interface{}, error) {
+	var apiPath string
+	if isIncremental {
+		apiPath = "/ps/ps_int_org_inc"
+	} else {
+		apiPath = "/ps/ps_int_org_all"
+	}
+	url := fmt.Sprintf("%s%s", c.baseURL, apiPath)
+
+	queryParams := map[string]string{
+		"pageNum":  fmt.Sprintf("%d", pageNum),
+		"pageSize": fmt.Sprintf("%d", pageSize),
+		"ds":       ds,
+	}
+
+	slog.Info("查询PS组织信息",
+		"url", url,
+		"page_num", pageNum,
+		"page_size", pageSize,
+		"ds", ds,
+		"incremental", isIncremental)
+
+	result, err := c.Post(ctx, url, &RequestOptions{
+		Query: queryParams,
+	})
+
+	if err != nil {
+		slog.Error("查询组织信息失败", "error", err, "url", url)
+		return nil, err
+	}
+
+	var apiResp OrganizationPaginationResponse
+	jsonData, err := json.Marshal(result)
+	if err != nil {
+		return nil, fmt.Errorf("序列化响应失败: %v", err)
+	}
+
+	if err := json.Unmarshal(jsonData, &apiResp); err != nil {
+		return nil, fmt.Errorf("解析响应失败: %v", err)
+	}
+
+	if apiResp.ErrCode != 0 {
+		return nil, fmt.Errorf("API返回错误: %s (errCode: %d)", apiResp.ErrMsg, apiResp.ErrCode)
+	}
+
+	records := make([]interface{}, 0, len(apiResp.Data.Rows))
+	for _, record := range apiResp.Data.Rows {
+		records = append(records, record)
+	}
+
+	slog.Info("查询组织信息成功",
+		"count", len(records),
+		"total_num", apiResp.Data.TotalNum,
+		"page_num", pageNum,
+		"request_id", apiResp.RequestID)
+
+	return records, nil
+}
+
+// SaveOrganizationsToDB 保存组织数据到数据库
+func (c *PSClient) SaveOrganizationsToDB(ctx interface{}, data interface{}, ds string, isIncremental bool) error {
+	if c.repository == nil {
+		return fmt.Errorf("数据库未配置")
+	}
+
+	dataArray, ok := data.([]interface{})
+	if !ok {
+		return fmt.Errorf("数据格式错误")
+	}
+
+	ctxTyped, ok := ctx.(context.Context)
+	if !ok {
+		ctxTyped = context.Background()
+	}
+
+	return c.repository.SaveOrganizations(ctxTyped, dataArray, ds)
+}
+
+// queryEmployeesIncWithParams 根据参数查询员工增量数据
+func (c *PSClient) queryEmployeesIncWithParams(ctx context.Context, params map[string]string) (interface{}, error) {
+	pageNum := 1
+	pageSize := 100
+	ds := params["ds"]
+	emplID := params["emplid"]
+
+	if params["page_num"] != "" {
+		fmt.Sscanf(params["page_num"], "%d", &pageNum)
+	}
+	if params["page_size"] != "" {
+		fmt.Sscanf(params["page_size"], "%d", &pageSize)
+	}
+
+	return c.QueryEmployees(ctx, pageNum, pageSize, ds, emplID, true)
+}
+
+// queryEmployeesAllWithParams 根据参数查询员工全量数据
+func (c *PSClient) queryEmployeesAllWithParams(ctx context.Context, params map[string]string) (interface{}, error) {
+	pageNum := 1
+	pageSize := 100
+	ds := params["ds"]
+	emplID := params["emplid"]
+
+	if params["page_num"] != "" {
+		fmt.Sscanf(params["page_num"], "%d", &pageNum)
+	}
+	if params["page_size"] != "" {
+		fmt.Sscanf(params["page_size"], "%d", &pageSize)
+	}
+
+	return c.QueryEmployees(ctx, pageNum, pageSize, ds, emplID, false)
+}
+
+// QueryEmployees 查询员工信息
+func (c *PSClient) QueryEmployees(ctx context.Context, pageNum, pageSize int, ds, emplID string, isIncremental bool) ([]interface{}, error) {
+	var apiPath string
+	if isIncremental {
+		apiPath = "/ps/ps_int_emp_inc_yq"
+	} else {
+		apiPath = "/ps/ps_int_emp_all_yq"
+	}
+	url := fmt.Sprintf("%s%s", c.baseURL, apiPath)
+
+	queryParams := map[string]string{
+		"pageNum":  fmt.Sprintf("%d", pageNum),
+		"pageSize": fmt.Sprintf("%d", pageSize),
+		"ds":       ds,
+	}
+
+	if emplID != "" {
+		queryParams["emplid"] = emplID
+	}
+
+	slog.Info("查询PS员工信息",
+		"url", url,
+		"page_num", pageNum,
+		"page_size", pageSize,
+		"ds", ds,
+		"emplid", emplID,
+		"incremental", isIncremental)
+
+	result, err := c.Post(ctx, url, &RequestOptions{
+		Query: queryParams,
+	})
+
+	if err != nil {
+		slog.Error("查询员工信息失败", "error", err, "url", url)
+		return nil, err
+	}
+
+	var apiResp EmployeePaginationResponse
+	jsonData, err := json.Marshal(result)
+	if err != nil {
+		return nil, fmt.Errorf("序列化响应失败: %v", err)
+	}
+
+	if err := json.Unmarshal(jsonData, &apiResp); err != nil {
+		return nil, fmt.Errorf("解析响应失败: %v", err)
+	}
+
+	if apiResp.ErrCode != 0 {
+		return nil, fmt.Errorf("API返回错误: %s (errCode: %d)", apiResp.ErrMsg, apiResp.ErrCode)
+	}
+
+	records := make([]interface{}, 0, len(apiResp.Data.Rows))
+	for _, record := range apiResp.Data.Rows {
+		records = append(records, record)
+	}
+
+	slog.Info("查询员工信息成功",
+		"count", len(records),
+		"total_num", apiResp.Data.TotalNum,
+		"page_num", pageNum,
+		"request_id", apiResp.RequestID)
+
+	return records, nil
+}
+
+// SaveEmployeesToDB 保存员工数据到数据库
+func (c *PSClient) SaveEmployeesToDB(ctx interface{}, data interface{}, ds string, isIncremental bool) error {
+	if c.repository == nil {
+		return fmt.Errorf("数据库未配置")
+	}
+
+	dataArray, ok := data.([]interface{})
+	if !ok {
+		return fmt.Errorf("数据格式错误")
+	}
+
+	ctxTyped, ok := ctx.(context.Context)
+	if !ok {
+		ctxTyped = context.Background()
+	}
+
+	return c.repository.SaveEmployees(ctxTyped, dataArray, ds)
+}
+
+// queryEmployeeHonorsWithParams 根据参数查询员工荣誉数据
+func (c *PSClient) queryEmployeeHonorsWithParams(ctx context.Context, params map[string]string) (interface{}, error) {
+	pageNum := 1
+	pageSize := 100
+	ds := params["ds"]
+	emplID := params["emplid"]
+
+	if params["page_num"] != "" {
+		fmt.Sscanf(params["page_num"], "%d", &pageNum)
+	}
+	if params["page_size"] != "" {
+		fmt.Sscanf(params["page_size"], "%d", &pageSize)
+	}
+
+	return c.QueryEmployeeHonors(ctx, pageNum, pageSize, ds, emplID)
+}
+
+// QueryEmployeeHonors 查询员工荣誉信息
+func (c *PSClient) QueryEmployeeHonors(ctx context.Context, pageNum, pageSize int, ds, emplID string) ([]interface{}, error) {
+	url := fmt.Sprintf("%s/ps/ps_c_honor_emp_tbl", c.baseURL)
+
+	queryParams := map[string]string{
+		"pageNum":  fmt.Sprintf("%d", pageNum),
+		"pageSize": fmt.Sprintf("%d", pageSize),
+		"ds":       ds,
+	}
+
+	if emplID != "" {
+		queryParams["emplid"] = emplID
+	}
+
+	slog.Info("查询PS员工荣誉信息",
+		"url", url,
+		"page_num", pageNum,
+		"page_size", pageSize,
+		"ds", ds,
+		"emplid", emplID)
+
+	result, err := c.Post(ctx, url, &RequestOptions{
+		Query: queryParams,
+	})
+
+	if err != nil {
+		slog.Error("查询员工荣誉信息失败", "error", err, "url", url)
+		return nil, err
+	}
+
+	var apiResp EmployeeHonorPaginationResponse
+	jsonData, err := json.Marshal(result)
+	if err != nil {
+		return nil, fmt.Errorf("序列化响应失败: %v", err)
+	}
+
+	if err := json.Unmarshal(jsonData, &apiResp); err != nil {
+		return nil, fmt.Errorf("解析响应失败: %v", err)
+	}
+
+	if apiResp.ErrCode != 0 {
+		return nil, fmt.Errorf("API返回错误: %s (errCode: %d)", apiResp.ErrMsg, apiResp.ErrCode)
+	}
+
+	records := make([]interface{}, 0, len(apiResp.Data.Rows))
+	for _, record := range apiResp.Data.Rows {
+		records = append(records, record)
+	}
+
+	slog.Info("查询员工荣誉信息成功",
+		"count", len(records),
+		"total_num", apiResp.Data.TotalNum,
+		"page_num", pageNum,
+		"request_id", apiResp.RequestID)
+
+	return records, nil
+}
+
+// SaveEmployeeHonorsToDB 保存员工荣誉数据到数据库
+func (c *PSClient) SaveEmployeeHonorsToDB(ctx interface{}, data interface{}, ds string) error {
+	if c.repository == nil {
+		return fmt.Errorf("数据库未配置")
+	}
+
+	dataArray, ok := data.([]interface{})
+	if !ok {
+		return fmt.Errorf("数据格式错误")
+	}
+
+	ctxTyped, ok := ctx.(context.Context)
+	if !ok {
+		ctxTyped = context.Background()
+	}
+
+	return c.repository.SaveEmployeeHonors(ctxTyped, dataArray, ds)
+}
+
+// queryFamilyMainWithParams 根据参数查询家族父表数据
+func (c *PSClient) queryFamilyMainWithParams(ctx context.Context, params map[string]string) (interface{}, error) {
+	pageNum := 1
+	pageSize := 100
+	ds := params["ds"]
+	emplID := params["emplid"]
+
+	if params["page_num"] != "" {
+		fmt.Sscanf(params["page_num"], "%d", &pageNum)
+	}
+	if params["page_size"] != "" {
+		fmt.Sscanf(params["page_size"], "%d", &pageSize)
+	}
+
+	return c.QueryFamilyMain(ctx, pageNum, pageSize, ds, emplID)
+}
+
+// QueryFamilyMain 查询家族父表信息
+func (c *PSClient) QueryFamilyMain(ctx context.Context, pageNum, pageSize int, ds, emplID string) ([]interface{}, error) {
+	url := fmt.Sprintf("%s/ps/ps_c_family_main_t", c.baseURL)
+
+	queryParams := map[string]string{
+		"pageNum":  fmt.Sprintf("%d", pageNum),
+		"pageSize": fmt.Sprintf("%d", pageSize),
+		"ds":       ds,
+	}
+
+	if emplID != "" {
+		queryParams["emplid"] = emplID
+	}
+
+	slog.Info("查询PS家族父表信息",
+		"url", url,
+		"page_num", pageNum,
+		"page_size", pageSize,
+		"ds", ds,
+		"emplid", emplID)
+
+	result, err := c.Post(ctx, url, &RequestOptions{
+		Query: queryParams,
+	})
+
+	if err != nil {
+		slog.Error("查询家族父表信息失败", "error", err, "url", url)
+		return nil, err
+	}
+
+	var apiResp FamilyMainPaginationResponse
+	jsonData, err := json.Marshal(result)
+	if err != nil {
+		return nil, fmt.Errorf("序列化响应失败: %v", err)
+	}
+
+	if err := json.Unmarshal(jsonData, &apiResp); err != nil {
+		return nil, fmt.Errorf("解析响应失败: %v", err)
+	}
+
+	if apiResp.ErrCode != 0 {
+		return nil, fmt.Errorf("API返回错误: %s (errCode: %d)", apiResp.ErrMsg, apiResp.ErrCode)
+	}
+
+	records := make([]interface{}, 0, len(apiResp.Data.Rows))
+	for _, record := range apiResp.Data.Rows {
+		records = append(records, record)
+	}
+
+	slog.Info("查询家族父表信息成功",
+		"count", len(records),
+		"total_num", apiResp.Data.TotalNum,
+		"page_num", pageNum,
+		"request_id", apiResp.RequestID)
+
+	return records, nil
+}
+
+// SaveFamilyMainToDB 保存家族父表数据到数据库
+func (c *PSClient) SaveFamilyMainToDB(ctx interface{}, data interface{}, ds string) error {
+	if c.repository == nil {
+		return fmt.Errorf("数据库未配置")
+	}
+
+	dataArray, ok := data.([]interface{})
+	if !ok {
+		return fmt.Errorf("数据格式错误")
+	}
+
+	ctxTyped, ok := ctx.(context.Context)
+	if !ok {
+		ctxTyped = context.Background()
+	}
+
+	return c.repository.SaveFamilyMain(ctxTyped, dataArray, ds)
 }
 
 // HealthCheck 健康检查
