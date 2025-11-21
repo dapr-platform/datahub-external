@@ -534,6 +534,210 @@ paths:
       summary: 预订单数据
       tags:
       - 绿云接口
+  /ps/employee-honors:
+    get:
+      consumes:
+      - application/json
+      description: 获取PS系统员工荣誉信息，支持分页查询
+      parameters:
+      - description: '分区字段 (格式: YYYYMMDD，示例: 20251113)'
+        in: query
+        name: ds
+        required: true
+        type: string
+      - description: '页编号 (默认: 1)'
+        in: query
+        name: page_num
+        type: integer
+      - description: '页大小 (默认: 100，最大: 2000)'
+        in: query
+        name: page_size
+        type: integer
+      - description: 员工ID
+        in: query
+        name: emplid
+        type: string
+      - description: '是否保存到数据库 (默认: true)'
+        in: query
+        name: save_db
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/controllers.APIResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/controllers.APIResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/controllers.APIResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/controllers.APIResponse'
+      security:
+      - ApiKeyAuth: []
+      summary: 员工荣誉数据
+      tags:
+      - PS接口
+  /ps/employees-all:
+    get:
+      consumes:
+      - application/json
+      description: 获取PS系统员工全量信息，支持分页查询
+      parameters:
+      - description: '分区字段 (格式: YYYYMMDD，示例: 20251113)'
+        in: query
+        name: ds
+        required: true
+        type: string
+      - description: '页编号 (默认: 1)'
+        in: query
+        name: page_num
+        type: integer
+      - description: '页大小 (默认: 100，最大: 2000)'
+        in: query
+        name: page_size
+        type: integer
+      - description: 员工ID
+        in: query
+        name: emplid
+        type: string
+      - description: '是否保存到数据库 (默认: true)'
+        in: query
+        name: save_db
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/controllers.APIResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/controllers.APIResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/controllers.APIResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/controllers.APIResponse'
+      security:
+      - ApiKeyAuth: []
+      summary: 员工全量数据
+      tags:
+      - PS接口
+  /ps/employees-inc:
+    get:
+      consumes:
+      - application/json
+      description: 获取PS系统员工增量信息，支持分页查询
+      parameters:
+      - description: '分区字段 (格式: YYYYMMDD，示例: 20251113)'
+        in: query
+        name: ds
+        required: true
+        type: string
+      - description: '页编号 (默认: 1)'
+        in: query
+        name: page_num
+        type: integer
+      - description: '页大小 (默认: 100，最大: 2000)'
+        in: query
+        name: page_size
+        type: integer
+      - description: 员工ID
+        in: query
+        name: emplid
+        type: string
+      - description: '是否保存到数据库 (默认: true)'
+        in: query
+        name: save_db
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/controllers.APIResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/controllers.APIResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/controllers.APIResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/controllers.APIResponse'
+      security:
+      - ApiKeyAuth: []
+      summary: 员工增量数据
+      tags:
+      - PS接口
+  /ps/family-main:
+    get:
+      consumes:
+      - application/json
+      description: 获取PS系统家族父表信息，支持分页查询
+      parameters:
+      - description: '分区字段 (格式: YYYYMMDD，示例: 20251113)'
+        in: query
+        name: ds
+        required: true
+        type: string
+      - description: '页编号 (默认: 1)'
+        in: query
+        name: page_num
+        type: integer
+      - description: '页大小 (默认: 100，最大: 2000)'
+        in: query
+        name: page_size
+        type: integer
+      - description: 员工ID
+        in: query
+        name: emplid
+        type: string
+      - description: '是否保存到数据库 (默认: true)'
+        in: query
+        name: save_db
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/controllers.APIResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/controllers.APIResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/controllers.APIResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/controllers.APIResponse'
+      security:
+      - ApiKeyAuth: []
+      summary: 家族父表数据
+      tags:
+      - PS接口
   /ps/family-members:
     get:
       consumes:
@@ -634,6 +838,194 @@ paths:
       security:
       - ApiKeyAuth: []
       summary: 获取PS接口信息
+      tags:
+      - PS接口
+  /ps/organizations-all:
+    get:
+      consumes:
+      - application/json
+      description: 获取PS系统组织全量信息，支持分页查询
+      parameters:
+      - description: '分区字段 (格式: YYYYMMDD，示例: 20251113)'
+        in: query
+        name: ds
+        required: true
+        type: string
+      - description: '页编号 (默认: 1)'
+        in: query
+        name: page_num
+        type: integer
+      - description: '页大小 (默认: 100，最大: 2000)'
+        in: query
+        name: page_size
+        type: integer
+      - description: '是否保存到数据库 (默认: true)'
+        in: query
+        name: save_db
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/controllers.APIResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/controllers.APIResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/controllers.APIResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/controllers.APIResponse'
+      security:
+      - ApiKeyAuth: []
+      summary: 组织全量数据
+      tags:
+      - PS接口
+  /ps/organizations-inc:
+    get:
+      consumes:
+      - application/json
+      description: 获取PS系统组织增量信息，支持分页查询
+      parameters:
+      - description: '分区字段 (格式: YYYYMMDD，示例: 20251113)'
+        in: query
+        name: ds
+        required: true
+        type: string
+      - description: '页编号 (默认: 1)'
+        in: query
+        name: page_num
+        type: integer
+      - description: '页大小 (默认: 100，最大: 2000)'
+        in: query
+        name: page_size
+        type: integer
+      - description: '是否保存到数据库 (默认: true)'
+        in: query
+        name: save_db
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/controllers.APIResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/controllers.APIResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/controllers.APIResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/controllers.APIResponse'
+      security:
+      - ApiKeyAuth: []
+      summary: 组织增量数据
+      tags:
+      - PS接口
+  /ps/positions-all:
+    get:
+      consumes:
+      - application/json
+      description: 获取PS系统岗位全量信息，支持分页查询
+      parameters:
+      - description: '分区字段 (格式: YYYYMMDD，示例: 20251113)'
+        in: query
+        name: ds
+        required: true
+        type: string
+      - description: '页编号 (默认: 1)'
+        in: query
+        name: page_num
+        type: integer
+      - description: '页大小 (默认: 100，最大: 2000)'
+        in: query
+        name: page_size
+        type: integer
+      - description: '是否保存到数据库 (默认: true)'
+        in: query
+        name: save_db
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/controllers.APIResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/controllers.APIResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/controllers.APIResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/controllers.APIResponse'
+      security:
+      - ApiKeyAuth: []
+      summary: 岗位全量数据
+      tags:
+      - PS接口
+  /ps/positions-inc:
+    get:
+      consumes:
+      - application/json
+      description: 获取PS系统岗位增量信息，支持分页查询
+      parameters:
+      - description: '分区字段 (格式: YYYYMMDD，示例: 20251113)'
+        in: query
+        name: ds
+        required: true
+        type: string
+      - description: '页编号 (默认: 1)'
+        in: query
+        name: page_num
+        type: integer
+      - description: '页大小 (默认: 100，最大: 2000)'
+        in: query
+        name: page_size
+        type: integer
+      - description: '是否保存到数据库 (默认: true)'
+        in: query
+        name: save_db
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/controllers.APIResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/controllers.APIResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/controllers.APIResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/controllers.APIResponse'
+      security:
+      - ApiKeyAuth: []
+      summary: 岗位增量数据
       tags:
       - PS接口
   /ps/trigger-sync:
