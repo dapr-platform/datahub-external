@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"gorm.io/gorm"
+	"gorm.io/gorm/clause"
 )
 
 // Repository PS数据仓库
@@ -44,8 +45,7 @@ func (r *Repository) SaveFamilyMembers(ctx context.Context, data []interface{}, 
 	}
 
 	syncTime := time.Now()
-	newRecords := make([]PSFamilyMember, 0)
-	updateRecords := make([]PSFamilyMember, 0)
+	records := make([]PSFamilyMember, 0)
 
 	for _, item := range data {
 		jsonData, err := json.Marshal(item)
@@ -100,47 +100,29 @@ func (r *Repository) SaveFamilyMembers(ctx context.Context, data []interface{}, 
 			}
 		}
 
-		// 查询数据库中是否已存在该记录
-		var existing PSFamilyMember
-		err = r.db.WithContext(ctx).Where("unique_key = ?", record.UniqueKey).First(&existing).Error
-		if err == gorm.ErrRecordNotFound {
-			// 新记录，直接添加
-			newRecords = append(newRecords, record)
-		} else if err == nil {
-			// 记录已存在，比较是否有变化
-			if isFamilyMemberChanged(existing, record) {
-				record.ID = existing.ID
-				record.CreatedAt = existing.CreatedAt
-				updateRecords = append(updateRecords, record)
-			}
-		} else {
-			slog.Error("查询家族成员记录失败", "error", err, "unique_key", record.UniqueKey)
-		}
+		records = append(records, record)
 	}
 
-	// 批量插入新记录
-	if len(newRecords) > 0 {
-		if err := r.db.WithContext(ctx).Create(&newRecords).Error; err != nil {
-			return fmt.Errorf("插入家族成员数据失败: %v", err)
-		}
-		slog.Info("插入家族成员新记录", "count", len(newRecords))
+	if len(records) == 0 {
+		slog.Info("没有有效的家族成员数据需要保存")
+		return nil
 	}
 
-	// 批量更新已变化的记录
-	if len(updateRecords) > 0 {
-		for _, record := range updateRecords {
-			if err := r.db.WithContext(ctx).Save(&record).Error; err != nil {
-				slog.Error("更新家族成员记录失败", "error", err, "unique_key", record.UniqueKey)
-			}
-		}
-		slog.Info("更新家族成员记录", "count", len(updateRecords))
+	// 使用 UPSERT 操作：INSERT ... ON CONFLICT ... DO UPDATE
+	result := r.db.WithContext(ctx).Clauses(clause.OnConflict{
+		Columns:   []clause.Column{{Name: "unique_key"}},
+		DoUpdates: clause.AssignmentColumns([]string{
+			"c_family_id", "emplid", "c_fmy_relationship", "c_family_name",
+			"date1", "eff_status", "hrs_row_add_dttm", "hrs_row_add_oprid",
+			"hrs_row_upd_dttm", "hrs_row_upd_oprid", "adb_date", "ds", "sync_time",
+		}),
+	}).Create(&records)
+
+	if result.Error != nil {
+		return fmt.Errorf("保存家族成员数据失败: %v", result.Error)
 	}
 
-	skipped := len(data) - len(newRecords) - len(updateRecords)
-	if skipped > 0 {
-		slog.Info("跳过未变化的家族成员记录", "count", skipped)
-	}
-
+	slog.Info("保存家族成员数据成功", "count", len(records), "rows_affected", result.RowsAffected)
 	return nil
 }
 
@@ -225,44 +207,6 @@ func parseDateTime(dateStr string) (time.Time, error) {
 	return time.Time{}, fmt.Errorf("无法解析日期: %s", dateStr)
 }
 
-// isFamilyMemberChanged 比较家族成员记录是否有变化
-func isFamilyMemberChanged(old, new PSFamilyMember) bool {
-	// 比较时间字段（处理指针类型）
-	date1Changed := false
-	if (old.Date1 == nil) != (new.Date1 == nil) {
-		date1Changed = true
-	} else if old.Date1 != nil && new.Date1 != nil && !old.Date1.Equal(*new.Date1) {
-		date1Changed = true
-	}
-
-	hrsRowAddDttmChanged := false
-	if (old.HrsRowAddDttm == nil) != (new.HrsRowAddDttm == nil) {
-		hrsRowAddDttmChanged = true
-	} else if old.HrsRowAddDttm != nil && new.HrsRowAddDttm != nil && !old.HrsRowAddDttm.Equal(*new.HrsRowAddDttm) {
-		hrsRowAddDttmChanged = true
-	}
-
-	hrsRowUpdDttmChanged := false
-	if (old.HrsRowUpdDttm == nil) != (new.HrsRowUpdDttm == nil) {
-		hrsRowUpdDttmChanged = true
-	} else if old.HrsRowUpdDttm != nil && new.HrsRowUpdDttm != nil && !old.HrsRowUpdDttm.Equal(*new.HrsRowUpdDttm) {
-		hrsRowUpdDttmChanged = true
-	}
-
-	return old.CFamilyID != new.CFamilyID ||
-		old.EmplID != new.EmplID ||
-		old.CFmyRelationship != new.CFmyRelationship ||
-		old.CFamilyName != new.CFamilyName ||
-		date1Changed ||
-		old.EffStatus != new.EffStatus ||
-		hrsRowAddDttmChanged ||
-		old.HrsRowAddOprid != new.HrsRowAddOprid ||
-		hrsRowUpdDttmChanged ||
-		old.HrsRowUpdOprid != new.HrsRowUpdOprid ||
-		old.AdbDate != new.AdbDate ||
-		old.DS != new.DS
-}
-
 // SavePositions 保存岗位数据
 func (r *Repository) SavePositions(ctx context.Context, data []interface{}, ds string) error {
 	if len(data) == 0 {
@@ -271,8 +215,7 @@ func (r *Repository) SavePositions(ctx context.Context, data []interface{}, ds s
 	}
 
 	syncTime := time.Now()
-	newRecords := make([]PSPosition, 0)
-	updateRecords := make([]PSPosition, 0)
+	records := make([]PSPosition, 0)
 
 	for _, item := range data {
 		jsonData, err := json.Marshal(item)
@@ -357,35 +300,34 @@ func (r *Repository) SavePositions(ctx context.Context, data []interface{}, ds s
 			}
 		}
 
-		var existing PSPosition
-		err = r.db.WithContext(ctx).Where("unique_key = ?", record.UniqueKey).First(&existing).Error
-		if err == gorm.ErrRecordNotFound {
-			newRecords = append(newRecords, record)
-		} else if err == nil {
-			record.ID = existing.ID
-			record.CreatedAt = existing.CreatedAt
-			updateRecords = append(updateRecords, record)
-		} else {
-			slog.Error("查询岗位记录失败", "error", err, "unique_key", record.UniqueKey)
-		}
+		records = append(records, record)
 	}
 
-	if len(newRecords) > 0 {
-		if err := r.db.WithContext(ctx).Create(&newRecords).Error; err != nil {
-			return fmt.Errorf("插入岗位数据失败: %v", err)
-		}
-		slog.Info("插入岗位新记录", "count", len(newRecords))
+	if len(records) == 0 {
+		slog.Info("没有有效的岗位数据需要保存")
+		return nil
 	}
 
-	if len(updateRecords) > 0 {
-		for _, record := range updateRecords {
-			if err := r.db.WithContext(ctx).Save(&record).Error; err != nil {
-				slog.Error("更新岗位记录失败", "error", err, "unique_key", record.UniqueKey)
-			}
-		}
-		slog.Info("更新岗位记录", "count", len(updateRecords))
+	// 使用 UPSERT 操作：INSERT ... ON CONFLICT ... DO UPDATE
+	result := r.db.WithContext(ctx).Clauses(clause.OnConflict{
+		Columns:   []clause.Column{{Name: "unique_key"}},
+		DoUpdates: clause.AssignmentColumns([]string{
+			"position_nbr", "posn_descr", "business_unit", "business_descr",
+			"deptid", "dept_descr", "c_dept_type", "jobcode", "jobcode_descr",
+			"c_country_desc", "c_state_desc", "c_city_desc", "address1",
+			"reports_to", "descr100", "emplid", "name", "c_supv_lvl", "c_supv_lvl_desc",
+			"bgn_dt", "end_dt", "descr1", "descr2", "hrs_row_add_dttm", "hrs_row_add_oprid",
+			"hrs_row_upd_dttm", "hrs_row_upd_oprid", "c_old_posn_nbr", "createdttm",
+			"c_int_flag", "effdt", "adb_date", "c_sequence_id", "c_sequence_descr",
+			"c_subsequence_id", "c_subsequence_desc", "ds", "sync_time",
+		}),
+	}).Create(&records)
+
+	if result.Error != nil {
+		return fmt.Errorf("保存岗位数据失败: %v", result.Error)
 	}
 
+	slog.Info("保存岗位数据成功", "count", len(records), "rows_affected", result.RowsAffected)
 	return nil
 }
 
@@ -397,8 +339,7 @@ func (r *Repository) SaveOrganizations(ctx context.Context, data []interface{}, 
 	}
 
 	syncTime := time.Now()
-	newRecords := make([]PSOrganization, 0)
-	updateRecords := make([]PSOrganization, 0)
+	records := make([]PSOrganization, 0)
 
 	for _, item := range data {
 		jsonData, err := json.Marshal(item)
@@ -475,35 +416,32 @@ func (r *Repository) SaveOrganizations(ctx context.Context, data []interface{}, 
 			}
 		}
 
-		var existing PSOrganization
-		err = r.db.WithContext(ctx).Where("unique_key = ?", record.UniqueKey).First(&existing).Error
-		if err == gorm.ErrRecordNotFound {
-			newRecords = append(newRecords, record)
-		} else if err == nil {
-			record.ID = existing.ID
-			record.CreatedAt = existing.CreatedAt
-			updateRecords = append(updateRecords, record)
-		} else {
-			slog.Error("查询组织记录失败", "error", err, "unique_key", record.UniqueKey)
-		}
+		records = append(records, record)
 	}
 
-	if len(newRecords) > 0 {
-		if err := r.db.WithContext(ctx).Create(&newRecords).Error; err != nil {
-			return fmt.Errorf("插入组织数据失败: %v", err)
-		}
-		slog.Info("插入组织新记录", "count", len(newRecords))
+	if len(records) == 0 {
+		slog.Info("没有有效的组织数据需要保存")
+		return nil
 	}
 
-	if len(updateRecords) > 0 {
-		for _, record := range updateRecords {
-			if err := r.db.WithContext(ctx).Save(&record).Error; err != nil {
-				slog.Error("更新组织记录失败", "error", err, "unique_key", record.UniqueKey)
-			}
-		}
-		slog.Info("更新组织记录", "count", len(updateRecords))
+	// 使用 UPSERT 操作：INSERT ... ON CONFLICT ... DO UPDATE
+	result := r.db.WithContext(ctx).Clauses(clause.OnConflict{
+		Columns:   []clause.Column{{Name: "unique_key"}},
+		DoUpdates: clause.AssignmentColumns([]string{
+			"setid", "deptid", "tree_level_num", "tree_node_num", "dept_descr",
+			"c_dept_type", "c_dept_type_descr", "c_country_desc", "c_state_desc",
+			"c_city_desc", "address1", "parentname", "c_dept_descr", "emplid", "name",
+			"bgn_dt", "end_dt", "hrs_row_add_dttm", "hrs_row_add_oprid",
+			"hrs_row_upd_dttm", "hrs_row_upd_oprid", "c_old_deptid", "createdttm",
+			"c_int_flag", "effdt", "c_company", "c_company_desc", "adb_date", "ds", "sync_time",
+		}),
+	}).Create(&records)
+
+	if result.Error != nil {
+		return fmt.Errorf("保存组织数据失败: %v", result.Error)
 	}
 
+	slog.Info("保存组织数据成功", "count", len(records), "rows_affected", result.RowsAffected)
 	return nil
 }
 
@@ -515,8 +453,7 @@ func (r *Repository) SaveEmployees(ctx context.Context, data []interface{}, ds s
 	}
 
 	syncTime := time.Now()
-	newRecords := make([]PSEmployee, 0)
-	updateRecords := make([]PSEmployee, 0)
+	records := make([]PSEmployee, 0)
 
 	for _, item := range data {
 		jsonData, err := json.Marshal(item)
@@ -532,59 +469,59 @@ func (r *Repository) SaveEmployees(ctx context.Context, data []interface{}, ds s
 		}
 
 		record := PSEmployee{
-			HrsRowAddOprid:  resp.HrsRowAddOprid,
-			HrsRowUpdOprid:  resp.HrsRowUpdOprid,
-			EmplID:          resp.EmplID,
-			Name:            resp.Name,
-			Sex:             resp.Sex,
-			CSexDescr:       resp.CSexDescr,
-			MarStatus:       resp.MarStatus,
-			CMarDescr:       resp.CMarDescr,
-			Birthdate:       resp.Birthdate,
-			CBirthType:      resp.CBirthType,
-			CBirtypeDescr:   resp.CBirtypeDescr,
-			CBirthdate:      resp.CBirthdate,
-			CBirthdate1:     resp.CBirthdate1,
-			CCountryDesc1:   resp.CCountryDesc1,
-			CCountryDesc2:   resp.CCountryDesc2,
-			CStateDesc1:     resp.CStateDesc1,
-			CStateDesc2:     resp.CStateDesc2,
-			CEthnicGrpDesc:  resp.CEthnicGrpDesc,
-			CEthnicGrpDesc1: resp.CEthnicGrpDesc1,
-			CPersPolityDesc: resp.CPersPolityDesc,
-			Address1:        resp.Address1,
-			Address3:        resp.Address3,
-			CNidTypeDesc:    resp.CNidTypeDesc,
-			NationalID:      resp.NationalID,
-			Phone:           resp.Phone,
-			EmailAddr:       resp.EmailAddr,
+			HrsRowAddOprid:   resp.HrsRowAddOprid,
+			HrsRowUpdOprid:   resp.HrsRowUpdOprid,
+			EmplID:           resp.EmplID,
+			Name:             resp.Name,
+			Sex:              resp.Sex,
+			CSexDescr:        resp.CSexDescr,
+			MarStatus:        resp.MarStatus,
+			CMarDescr:        resp.CMarDescr,
+			Birthdate:        resp.Birthdate,
+			CBirthType:       resp.CBirthType,
+			CBirtypeDescr:    resp.CBirtypeDescr,
+			CBirthdate:       resp.CBirthdate,
+			CBirthdate1:      resp.CBirthdate1,
+			CCountryDesc1:    resp.CCountryDesc1,
+			CCountryDesc2:    resp.CCountryDesc2,
+			CStateDesc1:      resp.CStateDesc1,
+			CStateDesc2:      resp.CStateDesc2,
+			CEthnicGrpDesc:   resp.CEthnicGrpDesc,
+			CEthnicGrpDesc1:  resp.CEthnicGrpDesc1,
+			CPersPolityDesc:  resp.CPersPolityDesc,
+			Address1:         resp.Address1,
+			Address3:         resp.Address3,
+			CNidTypeDesc:     resp.CNidTypeDesc,
+			NationalID:       resp.NationalID,
+			Phone:            resp.Phone,
+			EmailAddr:        resp.EmailAddr,
 			EducationLvlAchv: resp.EducationLvlAchv,
-			CEducationDescr: resp.CEducationDescr,
-			SchoolDescr:     resp.SchoolDescr,
-			MajorDescr:      resp.MajorDescr,
-			CHireDate:       resp.CHireDate,
-			CLeaveDate:      resp.CLeaveDate,
-			RehireDt:        resp.RehireDt,
-			EmplClass:       resp.EmplClass,
-			CEmplclsDescr:   resp.CEmplclsDescr,
-			BusinessDescr:   resp.BusinessDescr,
-			DeptID:          resp.DeptID,
-			TreeNodeNum:     resp.TreeNodeNum,
-			DeptDescr:       resp.DeptDescr,
-			Jobcode:         resp.Jobcode,
-			JobcodeDescr:    resp.JobcodeDescr,
-			PositionNbr:     resp.PositionNbr,
-			PosnDescr:       resp.PosnDescr,
-			CSupvLvl:        resp.CSupvLvl,
-			CSupvLvlDesc:    resp.CSupvLvlDesc,
-			CCountryDesc:    resp.CCountryDesc,
-			CStateDesc:      resp.CStateDesc,
-			CCityDesc:       resp.CCityDesc,
-			Address2:        resp.Address2,
-			AdbDate:         resp.AdbDate,
-			DS:              ds,
-			SyncTime:        syncTime,
-			UniqueKey:       fmt.Sprintf("%s_%s", resp.EmplID, ds),
+			CEducationDescr:  resp.CEducationDescr,
+			SchoolDescr:      resp.SchoolDescr,
+			MajorDescr:       resp.MajorDescr,
+			CHireDate:        resp.CHireDate,
+			CLeaveDate:       resp.CLeaveDate,
+			RehireDt:         resp.RehireDt,
+			EmplClass:        resp.EmplClass,
+			CEmplclsDescr:    resp.CEmplclsDescr,
+			BusinessDescr:    resp.BusinessDescr,
+			DeptID:           resp.DeptID,
+			TreeNodeNum:      resp.TreeNodeNum,
+			DeptDescr:        resp.DeptDescr,
+			Jobcode:          resp.Jobcode,
+			JobcodeDescr:     resp.JobcodeDescr,
+			PositionNbr:      resp.PositionNbr,
+			PosnDescr:        resp.PosnDescr,
+			CSupvLvl:         resp.CSupvLvl,
+			CSupvLvlDesc:     resp.CSupvLvlDesc,
+			CCountryDesc:     resp.CCountryDesc,
+			CStateDesc:       resp.CStateDesc,
+			CCityDesc:        resp.CCityDesc,
+			Address2:         resp.Address2,
+			AdbDate:          resp.AdbDate,
+			DS:               ds,
+			SyncTime:         syncTime,
+			UniqueKey:        fmt.Sprintf("%s_%s", resp.EmplID, ds),
 		}
 
 		// 解析时间字段
@@ -607,35 +544,38 @@ func (r *Repository) SaveEmployees(ctx context.Context, data []interface{}, ds s
 			record.CIntFlag = *resp.CIntFlag
 		}
 
-		var existing PSEmployee
-		err = r.db.WithContext(ctx).Where("unique_key = ?", record.UniqueKey).First(&existing).Error
-		if err == gorm.ErrRecordNotFound {
-			newRecords = append(newRecords, record)
-		} else if err == nil {
-			record.ID = existing.ID
-			record.CreatedAt = existing.CreatedAt
-			updateRecords = append(updateRecords, record)
-		} else {
-			slog.Error("查询员工记录失败", "error", err, "unique_key", record.UniqueKey)
-		}
+		records = append(records, record)
 	}
 
-	if len(newRecords) > 0 {
-		if err := r.db.WithContext(ctx).Create(&newRecords).Error; err != nil {
-			return fmt.Errorf("插入员工数据失败: %v", err)
-		}
-		slog.Info("插入员工新记录", "count", len(newRecords))
+	if len(records) == 0 {
+		slog.Info("没有有效的员工数据需要保存")
+		return nil
 	}
 
-	if len(updateRecords) > 0 {
-		for _, record := range updateRecords {
-			if err := r.db.WithContext(ctx).Save(&record).Error; err != nil {
-				slog.Error("更新员工记录失败", "error", err, "unique_key", record.UniqueKey)
-			}
-		}
-		slog.Info("更新员工记录", "count", len(updateRecords))
+	// 使用 UPSERT 操作：INSERT ... ON CONFLICT ... DO UPDATE
+	result := r.db.WithContext(ctx).Clauses(clause.OnConflict{
+		Columns:   []clause.Column{{Name: "unique_key"}},
+		DoUpdates: clause.AssignmentColumns([]string{
+			"hrs_row_add_dttm", "hrs_row_add_oprid", "hrs_row_upd_dttm", "hrs_row_upd_oprid",
+			"createdttm", "emplid", "name", "sex", "c_sex_descr", "mar_status", "c_mar_descr",
+			"birthdate", "c_birth_type", "c_birtype_descr", "c_birthdate", "c_birthdate1",
+			"c_country_desc1", "c_country_desc2", "c_state_desc1", "c_state_desc2",
+			"c_ethnic_grp_desc", "c_ethnic_grp_desc1", "c_pers_polity_desc",
+			"address1", "address3", "c_nid_type_desc", "national_id", "phone", "email_addr",
+			"education_lvl_achv", "c_education_descr", "school_descr", "major_descr",
+			"c_hire_date", "c_leave_date", "rehire_dt", "empl_class", "c_emplcls_descr",
+			"business_descr", "deptid", "tree_node_num", "dept_descr", "jobcode", "jobcode_descr",
+			"position_nbr", "posn_descr", "c_supv_lvl", "c_supv_lvl_desc",
+			"c_country_desc", "c_state_desc", "c_city_desc", "address2", "c_int_flag",
+			"adb_date", "ds", "sync_time",
+		}),
+	}).Create(&records)
+
+	if result.Error != nil {
+		return fmt.Errorf("保存员工数据失败: %v", result.Error)
 	}
 
+	slog.Info("保存员工数据成功", "count", len(records), "rows_affected", result.RowsAffected)
 	return nil
 }
 
@@ -647,8 +587,7 @@ func (r *Repository) SaveEmployeeHonors(ctx context.Context, data []interface{},
 	}
 
 	syncTime := time.Now()
-	newRecords := make([]PSEmployeeHonor, 0)
-	updateRecords := make([]PSEmployeeHonor, 0)
+	records := make([]PSEmployeeHonor, 0)
 
 	for _, item := range data {
 		jsonData, err := json.Marshal(item)
@@ -706,35 +645,29 @@ func (r *Repository) SaveEmployeeHonors(ctx context.Context, data []interface{},
 			record.UniqueKey = fmt.Sprintf("%s_%s", resp.EmplID, ds)
 		}
 
-		var existing PSEmployeeHonor
-		err = r.db.WithContext(ctx).Where("unique_key = ?", record.UniqueKey).First(&existing).Error
-		if err == gorm.ErrRecordNotFound {
-			newRecords = append(newRecords, record)
-		} else if err == nil {
-			record.ID = existing.ID
-			record.CreatedAt = existing.CreatedAt
-			updateRecords = append(updateRecords, record)
-		} else {
-			slog.Error("查询员工荣誉记录失败", "error", err, "unique_key", record.UniqueKey)
-		}
+		records = append(records, record)
 	}
 
-	if len(newRecords) > 0 {
-		if err := r.db.WithContext(ctx).Create(&newRecords).Error; err != nil {
-			return fmt.Errorf("插入员工荣誉数据失败: %v", err)
-		}
-		slog.Info("插入员工荣誉新记录", "count", len(newRecords))
+	if len(records) == 0 {
+		slog.Info("没有有效的员工荣誉数据需要保存")
+		return nil
 	}
 
-	if len(updateRecords) > 0 {
-		for _, record := range updateRecords {
-			if err := r.db.WithContext(ctx).Save(&record).Error; err != nil {
-				slog.Error("更新员工荣誉记录失败", "error", err, "unique_key", record.UniqueKey)
-			}
-		}
-		slog.Info("更新员工荣誉记录", "count", len(updateRecords))
+	// 使用 UPSERT 操作：INSERT ... ON CONFLICT ... DO UPDATE
+	result := r.db.WithContext(ctx).Clauses(clause.OnConflict{
+		Columns:   []clause.Column{{Name: "unique_key"}},
+		DoUpdates: clause.AssignmentColumns([]string{
+			"emplid", "begin_dt", "eff_status", "end_dt", "descr254", "descr254a",
+			"comments_256", "deptid", "dept_descr", "hrs_row_add_dttm", "hrs_row_add_oprid",
+			"hrs_row_upd_dttm", "hrs_row_upd_oprid", "adb_date", "ds", "sync_time",
+		}),
+	}).Create(&records)
+
+	if result.Error != nil {
+		return fmt.Errorf("保存员工荣誉数据失败: %v", result.Error)
 	}
 
+	slog.Info("保存员工荣誉数据成功", "count", len(records), "rows_affected", result.RowsAffected)
 	return nil
 }
 
@@ -746,8 +679,7 @@ func (r *Repository) SaveFamilyMain(ctx context.Context, data []interface{}, ds 
 	}
 
 	syncTime := time.Now()
-	newRecords := make([]PSFamilyMain, 0)
-	updateRecords := make([]PSFamilyMain, 0)
+	records := make([]PSFamilyMain, 0)
 
 	for _, item := range data {
 		jsonData, err := json.Marshal(item)
@@ -797,35 +729,29 @@ func (r *Repository) SaveFamilyMain(ctx context.Context, data []interface{}, ds 
 			}
 		}
 
-		var existing PSFamilyMain
-		err = r.db.WithContext(ctx).Where("unique_key = ?", record.UniqueKey).First(&existing).Error
-		if err == gorm.ErrRecordNotFound {
-			newRecords = append(newRecords, record)
-		} else if err == nil {
-			record.ID = existing.ID
-			record.CreatedAt = existing.CreatedAt
-			updateRecords = append(updateRecords, record)
-		} else {
-			slog.Error("查询家族父表记录失败", "error", err, "unique_key", record.UniqueKey)
-		}
+		records = append(records, record)
 	}
 
-	if len(newRecords) > 0 {
-		if err := r.db.WithContext(ctx).Create(&newRecords).Error; err != nil {
-			return fmt.Errorf("插入家族父表数据失败: %v", err)
-		}
-		slog.Info("插入家族父表新记录", "count", len(newRecords))
+	if len(records) == 0 {
+		slog.Info("没有有效的家族父表数据需要保存")
+		return nil
 	}
 
-	if len(updateRecords) > 0 {
-		for _, record := range updateRecords {
-			if err := r.db.WithContext(ctx).Save(&record).Error; err != nil {
-				slog.Error("更新家族父表记录失败", "error", err, "unique_key", record.UniqueKey)
-			}
-		}
-		slog.Info("更新家族父表记录", "count", len(updateRecords))
+	// 使用 UPSERT 操作：INSERT ... ON CONFLICT ... DO UPDATE
+	result := r.db.WithContext(ctx).Clauses(clause.OnConflict{
+		Columns:   []clause.Column{{Name: "unique_key"}},
+		DoUpdates: clause.AssignmentColumns([]string{
+			"c_family_id", "emplid", "c_family_name", "date1", "eff_status",
+			"effdt_to", "hrs_row_add_dttm", "hrs_row_add_oprid",
+			"hrs_row_upd_dttm", "hrs_row_upd_oprid", "adb_date", "ds", "sync_time",
+		}),
+	}).Create(&records)
+
+	if result.Error != nil {
+		return fmt.Errorf("保存家族父表数据失败: %v", result.Error)
 	}
 
+	slog.Info("保存家族父表数据成功", "count", len(records), "rows_affected", result.RowsAffected)
 	return nil
 }
 
