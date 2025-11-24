@@ -36,6 +36,140 @@ func (r *Repository) AutoMigrate() error {
 	)
 }
 
+// deduplicateFamilyMembers 去重家族成员数据（保留最后一条）
+func deduplicateFamilyMembers(records []PSFamilyMember) []PSFamilyMember {
+	seen := make(map[string]int)
+	result := make([]PSFamilyMember, 0, len(records))
+	
+	// 第一遍：记录每个unique_key最后出现的位置
+	for i, record := range records {
+		seen[record.UniqueKey] = i
+	}
+	
+	// 第二遍：只保留最后出现的记录
+	for i, record := range records {
+		if seen[record.UniqueKey] == i {
+			result = append(result, record)
+		}
+	}
+	
+	if len(result) < len(records) {
+		slog.Warn("发现重复的家族成员数据", "original", len(records), "deduplicated", len(result), "duplicates", len(records)-len(result))
+	}
+	
+	return result
+}
+
+// deduplicatePositions 去重岗位数据（保留最后一条）
+func deduplicatePositions(records []PSPosition) []PSPosition {
+	seen := make(map[string]int)
+	result := make([]PSPosition, 0, len(records))
+	
+	for i, record := range records {
+		seen[record.UniqueKey] = i
+	}
+	
+	for i, record := range records {
+		if seen[record.UniqueKey] == i {
+			result = append(result, record)
+		}
+	}
+	
+	if len(result) < len(records) {
+		slog.Warn("发现重复的岗位数据", "original", len(records), "deduplicated", len(result), "duplicates", len(records)-len(result))
+	}
+	
+	return result
+}
+
+// deduplicateOrganizations 去重组织数据（保留最后一条）
+func deduplicateOrganizations(records []PSOrganization) []PSOrganization {
+	seen := make(map[string]int)
+	result := make([]PSOrganization, 0, len(records))
+	
+	for i, record := range records {
+		seen[record.UniqueKey] = i
+	}
+	
+	for i, record := range records {
+		if seen[record.UniqueKey] == i {
+			result = append(result, record)
+		}
+	}
+	
+	if len(result) < len(records) {
+		slog.Warn("发现重复的组织数据", "original", len(records), "deduplicated", len(result), "duplicates", len(records)-len(result))
+	}
+	
+	return result
+}
+
+// deduplicateEmployees 去重员工数据（保留最后一条）
+func deduplicateEmployees(records []PSEmployee) []PSEmployee {
+	seen := make(map[string]int)
+	result := make([]PSEmployee, 0, len(records))
+	
+	for i, record := range records {
+		seen[record.UniqueKey] = i
+	}
+	
+	for i, record := range records {
+		if seen[record.UniqueKey] == i {
+			result = append(result, record)
+		}
+	}
+	
+	if len(result) < len(records) {
+		slog.Warn("发现重复的员工数据", "original", len(records), "deduplicated", len(result), "duplicates", len(records)-len(result))
+	}
+	
+	return result
+}
+
+// deduplicateEmployeeHonors 去重员工荣誉数据（保留最后一条）
+func deduplicateEmployeeHonors(records []PSEmployeeHonor) []PSEmployeeHonor {
+	seen := make(map[string]int)
+	result := make([]PSEmployeeHonor, 0, len(records))
+	
+	for i, record := range records {
+		seen[record.UniqueKey] = i
+	}
+	
+	for i, record := range records {
+		if seen[record.UniqueKey] == i {
+			result = append(result, record)
+		}
+	}
+	
+	if len(result) < len(records) {
+		slog.Warn("发现重复的员工荣誉数据", "original", len(records), "deduplicated", len(result), "duplicates", len(records)-len(result))
+	}
+	
+	return result
+}
+
+// deduplicateFamilyMain 去重家族父表数据（保留最后一条）
+func deduplicateFamilyMain(records []PSFamilyMain) []PSFamilyMain {
+	seen := make(map[string]int)
+	result := make([]PSFamilyMain, 0, len(records))
+	
+	for i, record := range records {
+		seen[record.UniqueKey] = i
+	}
+	
+	for i, record := range records {
+		if seen[record.UniqueKey] == i {
+			result = append(result, record)
+		}
+	}
+	
+	if len(result) < len(records) {
+		slog.Warn("发现重复的家族父表数据", "original", len(records), "deduplicated", len(result), "duplicates", len(records)-len(result))
+	}
+	
+	return result
+}
+
 // SaveFamilyMembers 保存家族成员数据
 func (r *Repository) SaveFamilyMembers(ctx context.Context, data []interface{}, ds string) error {
 	if len(data) == 0 {
@@ -106,6 +240,9 @@ func (r *Repository) SaveFamilyMembers(ctx context.Context, data []interface{}, 
 		slog.Info("没有有效的家族成员数据需要保存")
 		return nil
 	}
+
+	// 去重：同一批次中如果有相同unique_key，只保留最后一条
+	records = deduplicateFamilyMembers(records)
 
 	// 使用分批UPSERT，避免PostgreSQL参数限制
 	return r.batchUpsertFamilyMembers(ctx, records)
@@ -356,6 +493,9 @@ func (r *Repository) SavePositions(ctx context.Context, data []interface{}, ds s
 		return nil
 	}
 
+	// 去重：同一批次中如果有相同unique_key，只保留最后一条
+	records = deduplicatePositions(records)
+
 	// 使用分批UPSERT，避免PostgreSQL参数限制
 	return r.batchUpsertPositions(ctx, records)
 }
@@ -452,6 +592,9 @@ func (r *Repository) SaveOrganizations(ctx context.Context, data []interface{}, 
 		slog.Info("没有有效的组织数据需要保存")
 		return nil
 	}
+
+	// 去重：同一批次中如果有相同unique_key，只保留最后一条
+	records = deduplicateOrganizations(records)
 
 	// 使用分批UPSERT，避免PostgreSQL参数限制
 	return r.batchUpsertOrganizations(ctx, records)
@@ -564,6 +707,9 @@ func (r *Repository) SaveEmployees(ctx context.Context, data []interface{}, ds s
 		return nil
 	}
 
+	// 去重：同一批次中如果有相同unique_key，只保留最后一条
+	records = deduplicateEmployees(records)
+
 	// 使用分批UPSERT，避免PostgreSQL参数限制
 	return r.batchUpsertEmployees(ctx, records)
 }
@@ -643,6 +789,9 @@ func (r *Repository) SaveEmployeeHonors(ctx context.Context, data []interface{},
 		return nil
 	}
 
+	// 去重：同一批次中如果有相同unique_key，只保留最后一条
+	records = deduplicateEmployeeHonors(records)
+
 	// 使用分批UPSERT，避免PostgreSQL参数限制
 	return r.batchUpsertEmployeeHonors(ctx, records)
 }
@@ -712,6 +861,9 @@ func (r *Repository) SaveFamilyMain(ctx context.Context, data []interface{}, ds 
 		slog.Info("没有有效的家族父表数据需要保存")
 		return nil
 	}
+
+	// 去重：同一批次中如果有相同unique_key，只保留最后一条
+	records = deduplicateFamilyMain(records)
 
 	// 使用分批UPSERT，避免PostgreSQL参数限制
 	return r.batchUpsertFamilyMain(ctx, records)

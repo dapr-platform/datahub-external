@@ -31,6 +31,94 @@ func (r *Repository) AutoMigrate() error {
 	)
 }
 
+// deduplicateReservations 去重预订单数据（保留最后一条）
+func deduplicateReservations(records []LvyunReservation) []LvyunReservation {
+	seen := make(map[string]int)
+	result := make([]LvyunReservation, 0, len(records))
+
+	for i, record := range records {
+		seen[record.UniqueKey] = i
+	}
+
+	for i, record := range records {
+		if seen[record.UniqueKey] == i {
+			result = append(result, record)
+		}
+	}
+
+	if len(result) < len(records) {
+		slog.Warn("发现重复的预订单数据", "original", len(records), "deduplicated", len(result), "duplicates", len(records)-len(result))
+	}
+
+	return result
+}
+
+// deduplicateRegistrations 去重登记单数据（保留最后一条）
+func deduplicateRegistrations(records []LvyunRegistration) []LvyunRegistration {
+	seen := make(map[string]int)
+	result := make([]LvyunRegistration, 0, len(records))
+
+	for i, record := range records {
+		seen[record.UniqueKey] = i
+	}
+
+	for i, record := range records {
+		if seen[record.UniqueKey] == i {
+			result = append(result, record)
+		}
+	}
+
+	if len(result) < len(records) {
+		slog.Warn("发现重复的登记单数据", "original", len(records), "deduplicated", len(result), "duplicates", len(records)-len(result))
+	}
+
+	return result
+}
+
+// deduplicateCheckouts 去重结账单数据（保留最后一条）
+func deduplicateCheckouts(records []LvyunCheckout) []LvyunCheckout {
+	seen := make(map[string]int)
+	result := make([]LvyunCheckout, 0, len(records))
+
+	for i, record := range records {
+		seen[record.UniqueKey] = i
+	}
+
+	for i, record := range records {
+		if seen[record.UniqueKey] == i {
+			result = append(result, record)
+		}
+	}
+
+	if len(result) < len(records) {
+		slog.Warn("发现重复的结账单数据", "original", len(records), "deduplicated", len(result), "duplicates", len(records)-len(result))
+	}
+
+	return result
+}
+
+// deduplicateBusinessReports 去重营业报表数据（保留最后一条）
+func deduplicateBusinessReports(records []LvyunBusinessReport) []LvyunBusinessReport {
+	seen := make(map[string]int)
+	result := make([]LvyunBusinessReport, 0, len(records))
+
+	for i, record := range records {
+		seen[record.UniqueKey] = i
+	}
+
+	for i, record := range records {
+		if seen[record.UniqueKey] == i {
+			result = append(result, record)
+		}
+	}
+
+	if len(result) < len(records) {
+		slog.Warn("发现重复的营业报表数据", "original", len(records), "deduplicated", len(result), "duplicates", len(records)-len(result))
+	}
+
+	return result
+}
+
 // SaveReservations 保存预订单数据（使用UPSERT）
 func (r *Repository) SaveReservations(ctx context.Context, data []interface{}) error {
 	if len(data) == 0 {
@@ -103,6 +191,9 @@ func (r *Repository) SaveReservations(ctx context.Context, data []interface{}) e
 		slog.Info("没有有效的预订单数据需要保存")
 		return nil
 	}
+
+	// 去重：同一批次中如果有相同unique_key，只保留最后一条
+	records = deduplicateReservations(records)
 
 	// 使用分批UPSERT，避免PostgreSQL参数限制
 	return r.batchUpsertReservations(ctx, records)
@@ -182,6 +273,9 @@ func (r *Repository) SaveRegistrations(ctx context.Context, data []interface{}) 
 		return nil
 	}
 
+	// 去重：同一批次中如果有相同unique_key，只保留最后一条
+	records = deduplicateRegistrations(records)
+
 	// 使用分批UPSERT，避免PostgreSQL参数限制
 	return r.batchUpsertRegistrations(ctx, records)
 }
@@ -255,6 +349,9 @@ func (r *Repository) SaveCheckouts(ctx context.Context, data []interface{}) erro
 		return nil
 	}
 
+	// 去重：同一批次中如果有相同unique_key，只保留最后一条
+	records = deduplicateCheckouts(records)
+
 	// 使用分批UPSERT，避免PostgreSQL参数限制
 	return r.batchUpsertCheckouts(ctx, records)
 }
@@ -320,6 +417,9 @@ func (r *Repository) SaveBusinessReports(ctx context.Context, data []interface{}
 		return nil
 	}
 
+	// 去重：同一批次中如果有相同unique_key，只保留最后一条
+	records = deduplicateBusinessReports(records)
+
 	// 使用分批UPSERT，避免PostgreSQL参数限制
 	return r.batchUpsertBusinessReports(ctx, records)
 }
@@ -360,4 +460,3 @@ func isRateLimitError(remark string) bool {
 		strings.Contains(remark, "请10分钟后再查询") ||
 		(strings.Contains(remark, "请在") && strings.Contains(remark, "之后重试"))
 }
-
