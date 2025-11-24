@@ -472,12 +472,12 @@ func (s *Scheduler) syncData(
 
 	// 如果是全量同步且成功完成，清理旧DS数据
 	if !isIncremental && err == nil && totalRecords > 0 {
-		slog.Info("全量同步成功，开始清理旧DS数据", "data_type", dataName, "current_ds", ds, "task_id", taskID)
-		if cleanErr := s.repository.CleanOldDSData(ctx, ds, dataName); cleanErr != nil {
-			slog.Error("清理旧DS数据失败", "data_type", dataName, "error", cleanErr, "task_id", taskID)
+		slog.Info("全量同步成功，开始清理旧DS数据", "data_type", dataName, "task_type", taskType, "current_ds", ds, "task_id", taskID)
+		if cleanErr := s.repository.CleanOldDSData(ctx, ds, taskType); cleanErr != nil {
+			slog.Error("清理旧DS数据失败", "data_type", dataName, "task_type", taskType, "error", cleanErr, "task_id", taskID)
 			// 注意：清理失败不影响同步结果，只记录错误
 		} else {
-			slog.Info("清理旧DS数据成功", "data_type", dataName, "current_ds", ds, "task_id", taskID)
+			slog.Info("清理旧DS数据成功", "data_type", dataName, "task_type", taskType, "current_ds", ds, "task_id", taskID)
 		}
 	}
 }
