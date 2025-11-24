@@ -30,6 +30,10 @@ const (
 	ContentTypeText = "text/plain"
 	// DefaultStage 默认stage
 	DefaultStage = "RELEASE"
+	// MaxRetries 最大重试次数
+	MaxRetries = 3
+	// RetryDelay 重试延迟
+	RetryDelay = 2 * time.Second
 )
 
 // PSClient PS系统API网关客户端
@@ -258,12 +262,7 @@ func (c *PSClient) QueryFamilyMembers(ctx context.Context, pageNum, pageSize int
 		queryParams["emplid"] = emplID
 	}
 
-	slog.Info("查询PS家族成员信息",
-		"url", url,
-		"page_num", pageNum,
-		"page_size", pageSize,
-		"ds", ds,
-		"emplid", emplID)
+	// 详细日志已在doRequest中记录，这里只记录查询参数
 
 	// 发送POST请求，参数作为query参数
 	result, err := c.Post(ctx, url, &RequestOptions{
@@ -399,12 +398,7 @@ func (c *PSClient) QueryPositions(ctx context.Context, pageNum, pageSize int, ds
 		"ds":       ds,
 	}
 
-	slog.Info("查询PS岗位信息",
-		"url", url,
-		"page_num", pageNum,
-		"page_size", pageSize,
-		"ds", ds,
-		"incremental", isIncremental)
+	// 详细日志已在doRequest中记录
 
 	result, err := c.Post(ctx, url, &RequestOptions{
 		Query: queryParams,
@@ -510,12 +504,7 @@ func (c *PSClient) QueryOrganizations(ctx context.Context, pageNum, pageSize int
 		"ds":       ds,
 	}
 
-	slog.Info("查询PS组织信息",
-		"url", url,
-		"page_num", pageNum,
-		"page_size", pageSize,
-		"ds", ds,
-		"incremental", isIncremental)
+	// 详细日志已在doRequest中记录
 
 	result, err := c.Post(ctx, url, &RequestOptions{
 		Query: queryParams,
@@ -627,13 +616,7 @@ func (c *PSClient) QueryEmployees(ctx context.Context, pageNum, pageSize int, ds
 		queryParams["emplid"] = emplID
 	}
 
-	slog.Info("查询PS员工信息",
-		"url", url,
-		"page_num", pageNum,
-		"page_size", pageSize,
-		"ds", ds,
-		"emplid", emplID,
-		"incremental", isIncremental)
+	// 详细日志已在doRequest中记录
 
 	result, err := c.Post(ctx, url, &RequestOptions{
 		Query: queryParams,
@@ -722,12 +705,7 @@ func (c *PSClient) QueryEmployeeHonors(ctx context.Context, pageNum, pageSize in
 		queryParams["emplid"] = emplID
 	}
 
-	slog.Info("查询PS员工荣誉信息",
-		"url", url,
-		"page_num", pageNum,
-		"page_size", pageSize,
-		"ds", ds,
-		"emplid", emplID)
+	// 详细日志已在doRequest中记录
 
 	result, err := c.Post(ctx, url, &RequestOptions{
 		Query: queryParams,
@@ -816,12 +794,7 @@ func (c *PSClient) QueryFamilyMain(ctx context.Context, pageNum, pageSize int, d
 		queryParams["emplid"] = emplID
 	}
 
-	slog.Info("查询PS家族父表信息",
-		"url", url,
-		"page_num", pageNum,
-		"page_size", pageSize,
-		"ds", ds,
-		"emplid", emplID)
+	// 详细日志已在doRequest中记录
 
 	result, err := c.Post(ctx, url, &RequestOptions{
 		Query: queryParams,
@@ -1086,18 +1059,72 @@ func (c *PSClient) request(ctx context.Context, method, urlStr string, opts *Req
 		}
 	}
 
-	// 发送请求
-	resp, err := client.Do(req)
-	if err != nil {
-		slog.Error("HTTP请求失败", "error", err, "url", urlStr)
-		return nil, fmt.Errorf("HTTP请求失败: %v", err)
-	}
-	defer resp.Body.Close()
+	// 记录请求开始时间
+	startTime := time.Now()
 
-	// 读取响应
-	respBody, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return nil, fmt.Errorf("读取响应失败: %v", err)
+	// 发送请求（带重试）
+	var resp *http.Response
+	var respBody []byte
+	var lastErr error
+
+	for attempt := 1; attempt <= MaxRetries; attempt++ {
+		// 发送请求
+		resp, err = client.Do(req)
+		if err != nil {
+			lastErr = err
+			if attempt < MaxRetries {
+				slog.Warn("HTTP请求失败，准备重试",
+					"error", err,
+					"url", urlStr,
+					"attempt", attempt,
+					"max_retries", MaxRetries)
+				time.Sleep(RetryDelay * time.Duration(attempt)) // 递增延迟
+				continue
+			}
+			slog.Error("HTTP请求失败（已达最大重试次数）",
+				"error", err,
+				"url", urlStr,
+				"attempts", MaxRetries,
+				"duration", time.Since(startTime))
+			return nil, fmt.Errorf("HTTP请求失败: %v", err)
+		}
+
+		// 读取响应
+		respBody, err = io.ReadAll(resp.Body)
+		resp.Body.Close()
+		
+		if err != nil {
+			lastErr = err
+			if attempt < MaxRetries {
+				slog.Warn("读取响应失败，准备重试",
+					"error", err,
+					"url", urlStr,
+					"attempt", attempt,
+					"max_retries", MaxRetries)
+				time.Sleep(RetryDelay * time.Duration(attempt))
+				continue
+			}
+			slog.Error("读取响应失败（已达最大重试次数）",
+				"error", err,
+				"url", urlStr,
+				"attempts", MaxRetries,
+				"duration", time.Since(startTime))
+			return nil, fmt.Errorf("读取响应失败: %v", err)
+		}
+
+		// 成功，记录统计信息
+		slog.Info("API请求成功",
+			"url", urlStr,
+			"method", method,
+			"status_code", resp.StatusCode,
+			"response_size", len(respBody),
+			"duration_ms", time.Since(startTime).Milliseconds(),
+			"attempt", attempt)
+		break
+	}
+
+	if lastErr != nil {
+		return nil, lastErr
 	}
 
 	// 检查状态码

@@ -20,6 +20,13 @@ import (
 	"gorm.io/gorm"
 )
 
+const (
+	// MaxRetries 最大重试次数
+	MaxRetries = 3
+	// RetryDelay 重试延迟
+	RetryDelay = 2 * time.Second
+)
+
 // LvyunClient 绿云接口客户端
 type LvyunClient struct {
 	config     config.LvyunConfig
@@ -433,54 +440,90 @@ func (c *LvyunClient) calculateSign(params map[string]string) string {
 func (c *LvyunClient) postRequest(urlStr string, params map[string]string) ([]byte, error) {
 	// 构建form-encoded请求体
 	formData := url.Values{}
-	// 创建一个不包含敏感信息的参数副本用于日志
-	logParams := make(map[string]string)
 	for key, value := range params {
 		formData.Set(key, value)
-		// 隐藏敏感信息
-		if key == "password" || key == "sign" {
-			logParams[key] = "***"
-		} else {
-			logParams[key] = value
+	}
+
+	// 记录请求开始时间
+	startTime := time.Now()
+
+	// 带重试的HTTP请求
+	var body []byte
+	var lastErr error
+
+	for attempt := 1; attempt <= MaxRetries; attempt++ {
+		req, err := http.NewRequest("POST", urlStr, strings.NewReader(formData.Encode()))
+		if err != nil {
+			slog.Error("创建HTTP请求失败", "error", err, "url", urlStr)
+			return nil, err
 		}
-	}
 
-	slog.Debug("发送POST请求",
-		"url", urlStr,
-		"params", logParams)
+		req.Header.Set("Content-Type", "application/x-www-form-urlencoded;charset=UTF-8")
 
-	req, err := http.NewRequest("POST", urlStr, strings.NewReader(formData.Encode()))
-	if err != nil {
-		slog.Error("创建HTTP请求失败", "error", err, "url", urlStr)
-		return nil, err
-	}
+		resp, err := c.httpClient.Do(req)
+		if err != nil {
+			lastErr = err
+			if attempt < MaxRetries {
+				slog.Warn("HTTP请求失败，准备重试",
+					"error", err,
+					"url", urlStr,
+					"attempt", attempt,
+					"max_retries", MaxRetries)
+				time.Sleep(RetryDelay * time.Duration(attempt))
+				continue
+			}
+			slog.Error("HTTP请求失败（已达最大重试次数）",
+				"error", err,
+				"url", urlStr,
+				"attempts", MaxRetries,
+				"duration", time.Since(startTime))
+			return nil, err
+		}
 
-	req.Header.Set("Content-Type", "application/x-www-form-urlencoded;charset=UTF-8")
+		body, err = io.ReadAll(resp.Body)
+		resp.Body.Close()
 
-	resp, err := c.httpClient.Do(req)
-	if err != nil {
-		slog.Error("HTTP请求执行失败", "error", err, "url", urlStr)
-		return nil, err
-	}
-	defer resp.Body.Close()
+		if err != nil {
+			lastErr = err
+			if attempt < MaxRetries {
+				slog.Warn("读取响应失败，准备重试",
+					"error", err,
+					"url", urlStr,
+					"attempt", attempt,
+					"max_retries", MaxRetries)
+				time.Sleep(RetryDelay * time.Duration(attempt))
+				continue
+			}
+			slog.Error("读取响应失败（已达最大重试次数）",
+				"error", err,
+				"url", urlStr,
+				"attempts", MaxRetries,
+				"duration", time.Since(startTime))
+			return nil, err
+		}
 
-	body, err := io.ReadAll(resp.Body)
-	if err != nil {
-		slog.Error("读取响应体失败", "error", err)
-		return nil, err
-	}
+		// 检查HTTP状态码
+		if resp.StatusCode != http.StatusOK {
+			slog.Error("HTTP请求返回非200状态码",
+				"url", urlStr,
+				"status_code", resp.StatusCode,
+				"response_size", len(body),
+				"duration_ms", time.Since(startTime).Milliseconds())
+			return nil, fmt.Errorf("请求失败,状态码: %d", resp.StatusCode)
+		}
 
-	slog.Debug("收到HTTP响应",
-		"url", urlStr,
-		"status_code", resp.StatusCode,
-		"body_length", len(body))
-
-	if resp.StatusCode != http.StatusOK {
-		slog.Error("HTTP请求返回非200状态码",
+		// 成功，记录统计信息
+		slog.Info("API请求成功",
 			"url", urlStr,
 			"status_code", resp.StatusCode,
-			"response", string(body))
-		return nil, fmt.Errorf("请求失败,状态码: %d, 响应: %s", resp.StatusCode, string(body))
+			"response_size", len(body),
+			"duration_ms", time.Since(startTime).Milliseconds(),
+			"attempt", attempt)
+		break
+	}
+
+	if lastErr != nil {
+		return nil, lastErr
 	}
 
 	return body, nil

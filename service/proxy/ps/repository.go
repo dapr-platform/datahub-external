@@ -179,17 +179,27 @@ func (r *Repository) SaveFamilyMembers(ctx context.Context, data []interface{}, 
 
 	syncTime := time.Now()
 	records := make([]PSFamilyMember, 0)
+	errorCount := 0
+	firstError := ""
 
-	for _, item := range data {
+	for i, item := range data {
 		jsonData, err := json.Marshal(item)
 		if err != nil {
-			slog.Error("序列化家族成员数据失败", "error", err)
+			errorCount++
+			if firstError == "" {
+				firstError = fmt.Sprintf("序列化失败: %v", err)
+				slog.Error("序列化家族成员数据失败（第一个错误）", "error", err, "index", i)
+			}
 			continue
 		}
 
 		var resp FamilyResponse
 		if err := json.Unmarshal(jsonData, &resp); err != nil {
-			slog.Error("解析家族成员数据失败", "error", err, "data", string(jsonData))
+			errorCount++
+			if firstError == "" {
+				firstError = fmt.Sprintf("解析失败: %v", err)
+				slog.Error("解析家族成员数据失败（第一个错误）", "error", err, "index", i)
+			}
 			continue
 		}
 
@@ -208,33 +218,34 @@ func (r *Repository) SaveFamilyMembers(ctx context.Context, data []interface{}, 
 			UniqueKey:        fmt.Sprintf("%d_%s", resp.CFamilyID, resp.EmplID), // 不包含ds，只保留最新数据
 		}
 
-		// 解析时间字段
+		// 解析时间字段（静默失败，不记录每个错误）
 		if resp.Date1 != "" {
 			if t, err := parseDateTime(resp.Date1); err == nil {
 				record.Date1 = &t
-			} else {
-				slog.Warn("解析成立日期失败", "date1", resp.Date1, "error", err)
 			}
 		}
 
 		if resp.HrsRowAddDttm != nil && *resp.HrsRowAddDttm != "" {
 			if t, err := parseDateTime(*resp.HrsRowAddDttm); err == nil {
 				record.HrsRowAddDttm = &t
-			} else {
-				slog.Warn("解析添加时间失败", "hrs_row_add_dttm", *resp.HrsRowAddDttm, "error", err)
 			}
 		}
 
 		if resp.HrsRowUpdDttm != nil && *resp.HrsRowUpdDttm != "" {
 			if t, err := parseDateTime(*resp.HrsRowUpdDttm); err == nil {
 				record.HrsRowUpdDttm = &t
-			} else {
-				slog.Warn("解析更新时间失败", "hrs_row_upd_dttm", *resp.HrsRowUpdDttm, "error", err)
 			}
 		}
 
 		records = append(records, record)
 	}
+
+	// 记录处理统计
+	slog.Info("家族成员数据处理统计",
+		"total_input", len(data),
+		"valid_records", len(records),
+		"errors", errorCount,
+		"first_error", firstError)
 
 	if len(records) == 0 {
 		slog.Info("没有有效的家族成员数据需要保存")
