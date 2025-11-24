@@ -64,7 +64,7 @@ func NewLvyunClient(cfg config.LvyunConfig, db *gorm.DB) *LvyunClient {
 	client := &LvyunClient{
 		config: cfg,
 		httpClient: &http.Client{
-			Timeout: 30 * time.Second,
+			Timeout: 5 * time.Minute, // 增加到5分钟，处理大数据量请求
 		},
 		stopChan: make(chan struct{}),
 		status:   "initialized",

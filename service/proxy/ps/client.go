@@ -94,7 +94,7 @@ func NewPSClient(appKey, appSecret string, stage ...string) *PSClient {
 		stage:     stageValue,
 		baseURL:   "https://datadisclose.hdlapis.com",
 		httpClient: &http.Client{
-			Timeout: 30 * time.Second,
+			Timeout: 5 * time.Minute, // 增加到5分钟，处理大数据量请求
 		},
 		status:   "active",
 		stopChan: make(chan struct{}),
@@ -117,7 +117,7 @@ func NewPSClientWithConfig(cfg PSConfig, db interface{}) *PSClient {
 		stage:     cfg.Stage,
 		baseURL:   cfg.BaseURL,
 		httpClient: &http.Client{
-			Timeout: 60 * time.Second,
+			Timeout: 5 * time.Minute, // 增加到5分钟，处理大数据量请求
 		},
 		status:   "active",
 		stopChan: make(chan struct{}),

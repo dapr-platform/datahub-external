@@ -40,23 +40,23 @@ func (r *Repository) AutoMigrate() error {
 func deduplicateFamilyMembers(records []PSFamilyMember) []PSFamilyMember {
 	seen := make(map[string]int)
 	result := make([]PSFamilyMember, 0, len(records))
-	
+
 	// 第一遍：记录每个unique_key最后出现的位置
 	for i, record := range records {
 		seen[record.UniqueKey] = i
 	}
-	
+
 	// 第二遍：只保留最后出现的记录
 	for i, record := range records {
 		if seen[record.UniqueKey] == i {
 			result = append(result, record)
 		}
 	}
-	
+
 	if len(result) < len(records) {
 		slog.Warn("发现重复的家族成员数据", "original", len(records), "deduplicated", len(result), "duplicates", len(records)-len(result))
 	}
-	
+
 	return result
 }
 
@@ -64,21 +64,21 @@ func deduplicateFamilyMembers(records []PSFamilyMember) []PSFamilyMember {
 func deduplicatePositions(records []PSPosition) []PSPosition {
 	seen := make(map[string]int)
 	result := make([]PSPosition, 0, len(records))
-	
+
 	for i, record := range records {
 		seen[record.UniqueKey] = i
 	}
-	
+
 	for i, record := range records {
 		if seen[record.UniqueKey] == i {
 			result = append(result, record)
 		}
 	}
-	
+
 	if len(result) < len(records) {
 		slog.Warn("发现重复的岗位数据", "original", len(records), "deduplicated", len(result), "duplicates", len(records)-len(result))
 	}
-	
+
 	return result
 }
 
@@ -86,21 +86,21 @@ func deduplicatePositions(records []PSPosition) []PSPosition {
 func deduplicateOrganizations(records []PSOrganization) []PSOrganization {
 	seen := make(map[string]int)
 	result := make([]PSOrganization, 0, len(records))
-	
+
 	for i, record := range records {
 		seen[record.UniqueKey] = i
 	}
-	
+
 	for i, record := range records {
 		if seen[record.UniqueKey] == i {
 			result = append(result, record)
 		}
 	}
-	
+
 	if len(result) < len(records) {
 		slog.Warn("发现重复的组织数据", "original", len(records), "deduplicated", len(result), "duplicates", len(records)-len(result))
 	}
-	
+
 	return result
 }
 
@@ -108,21 +108,21 @@ func deduplicateOrganizations(records []PSOrganization) []PSOrganization {
 func deduplicateEmployees(records []PSEmployee) []PSEmployee {
 	seen := make(map[string]int)
 	result := make([]PSEmployee, 0, len(records))
-	
+
 	for i, record := range records {
 		seen[record.UniqueKey] = i
 	}
-	
+
 	for i, record := range records {
 		if seen[record.UniqueKey] == i {
 			result = append(result, record)
 		}
 	}
-	
+
 	if len(result) < len(records) {
 		slog.Warn("发现重复的员工数据", "original", len(records), "deduplicated", len(result), "duplicates", len(records)-len(result))
 	}
-	
+
 	return result
 }
 
@@ -130,21 +130,21 @@ func deduplicateEmployees(records []PSEmployee) []PSEmployee {
 func deduplicateEmployeeHonors(records []PSEmployeeHonor) []PSEmployeeHonor {
 	seen := make(map[string]int)
 	result := make([]PSEmployeeHonor, 0, len(records))
-	
+
 	for i, record := range records {
 		seen[record.UniqueKey] = i
 	}
-	
+
 	for i, record := range records {
 		if seen[record.UniqueKey] == i {
 			result = append(result, record)
 		}
 	}
-	
+
 	if len(result) < len(records) {
 		slog.Warn("发现重复的员工荣誉数据", "original", len(records), "deduplicated", len(result), "duplicates", len(records)-len(result))
 	}
-	
+
 	return result
 }
 
@@ -152,21 +152,21 @@ func deduplicateEmployeeHonors(records []PSEmployeeHonor) []PSEmployeeHonor {
 func deduplicateFamilyMain(records []PSFamilyMain) []PSFamilyMain {
 	seen := make(map[string]int)
 	result := make([]PSFamilyMain, 0, len(records))
-	
+
 	for i, record := range records {
 		seen[record.UniqueKey] = i
 	}
-	
+
 	for i, record := range records {
 		if seen[record.UniqueKey] == i {
 			result = append(result, record)
 		}
 	}
-	
+
 	if len(result) < len(records) {
 		slog.Warn("发现重复的家族父表数据", "original", len(records), "deduplicated", len(result), "duplicates", len(records)-len(result))
 	}
-	
+
 	return result
 }
 
