@@ -57,16 +57,32 @@ func init() {
 			cfg.Database.SSLMode,
 		)
 
+		// 根据配置设置日志级别
+		logLevel := logger.Warn // 默认warn级别
+		switch cfg.Database.LogLevel {
+		case "silent":
+			logLevel = logger.Silent
+		case "error":
+			logLevel = logger.Error
+		case "warn":
+			logLevel = logger.Warn
+		case "info":
+			logLevel = logger.Info
+		default:
+			slog.Warn("未知的数据库日志级别,使用默认warn级别", "log_level", cfg.Database.LogLevel)
+		}
+
 		var err error
 		db, err = gorm.Open(postgres.Open(dsn), &gorm.Config{
-			Logger: logger.Default.LogMode(logger.Info),
+			Logger: logger.Default.LogMode(logLevel),
 		})
 		if err != nil {
 			slog.Error("数据库连接失败", "error", err)
 		} else {
 			slog.Info("数据库连接成功",
 				"host", cfg.Database.Host,
-				"database", cfg.Database.DBName)
+				"database", cfg.Database.DBName,
+				"log_level", cfg.Database.LogLevel)
 		}
 	} else {
 		slog.Warn("数据库配置未设置,将不使用数据持久化功能")

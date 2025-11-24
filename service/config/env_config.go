@@ -60,6 +60,7 @@ type DatabaseConfig struct {
 	Password string
 	DBName   string
 	SSLMode  string
+	LogLevel string // 日志级别: silent, error, warn, info
 }
 
 // LoadConfig 加载配置
@@ -107,6 +108,7 @@ func LoadConfig() *Config {
 			Password: getEnv("DB_PASSWORD", ""),
 			DBName:   getEnv("DB_NAME", "datahub_external"),
 			SSLMode:  getEnv("DB_SSLMODE", "disable"),
+			LogLevel: getEnv("DB_LOG_LEVEL", "warn"), // 默认warn级别，不打印SQL
 		},
 	}
 }
