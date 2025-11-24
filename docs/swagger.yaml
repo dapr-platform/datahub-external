@@ -234,6 +234,55 @@ definitions:
       status:
         type: string
     type: object
+  proxy.TaskRecord:
+    properties:
+      data_source:
+        description: 数据源名称（lvyun/ps）
+        type: string
+      duration:
+        description: 执行时长（毫秒）
+        type: integer
+      end_time:
+        description: 结束时间
+        type: string
+      error_msg:
+        description: 错误信息
+        type: string
+      id:
+        description: 记录ID（使用时间戳生成）
+        type: string
+      record_count:
+        description: 处理记录数
+        type: integer
+      start_time:
+        description: 开始时间
+        type: string
+      status:
+        allOf:
+        - $ref: '#/definitions/proxy.TaskStatus'
+        description: 执行状态
+      task_type:
+        description: 任务类型（reservations/positions-inc等）
+        type: string
+    type: object
+  proxy.TaskStatus:
+    enum:
+    - running
+    - success
+    - failed
+    type: string
+    x-enum-comments:
+      TaskStatusFailed: 失败
+      TaskStatusRunning: 执行中
+      TaskStatusSuccess: 成功
+    x-enum-descriptions:
+    - 执行中
+    - 成功
+    - 失败
+    x-enum-varnames:
+    - TaskStatusRunning
+    - TaskStatusSuccess
+    - TaskStatusFailed
 info:
   contact: {}
   description: 代理第三方数据接口，如绿云酒店管理系统等
@@ -1079,6 +1128,75 @@ paths:
       summary: 就绪检查
       tags:
       - 健康检查
+  /task-records:
+    get:
+      consumes:
+      - application/json
+      description: 查询定期任务的执行记录，支持按数据源、任务类型、状态过滤
+      parameters:
+      - description: 数据源名称（lvyun/ps）
+        in: query
+        name: data_source
+        type: string
+      - description: 任务类型（如：reservations, positions-inc等）
+        in: query
+        name: task_type
+        type: string
+      - description: 执行状态（running/success/failed）
+        in: query
+        name: status
+        type: string
+      - description: 返回记录数（默认100）
+        in: query
+        name: limit
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/controllers.APIResponse'
+            - properties:
+                data:
+                  items:
+                    $ref: '#/definitions/proxy.TaskRecord'
+                  type: array
+              type: object
+      security:
+      - ApiKeyAuth: []
+      summary: 查询任务执行记录
+      tags:
+      - 数据源
+  /task-statistics:
+    get:
+      consumes:
+      - application/json
+      description: 获取任务执行的统计信息（总数、成功数、失败数、运行中）
+      parameters:
+      - description: 数据源名称（lvyun/ps）
+        in: query
+        name: data_source
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/controllers.APIResponse'
+            - properties:
+                data:
+                  additionalProperties: true
+                  type: object
+              type: object
+      security:
+      - ApiKeyAuth: []
+      summary: 获取任务统计信息
+      tags:
+      - 数据源
 securityDefinitions:
   ApiKeyAuth:
     description: 'API Key认证，也可以使用 Authorization: Bearer <key>'

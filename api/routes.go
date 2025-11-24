@@ -39,9 +39,11 @@ func InitRoute(r *chi.Mux) {
 	r.Get("/health", healthController.Health)
 	r.Get("/ready", healthController.Ready)
 
-	// 数据源列表接口
+	// 数据源相关接口
 	proxyController := controllers.NewProxyController(proxy.GetGlobalRegistry())
 	r.Get("/datasources", proxyController.ListDataSources)
+	r.Get("/task-records", proxyController.QueryTaskRecords)
+	r.Get("/task-statistics", proxyController.GetTaskStatistics)
 
 	// 绿云接口(需要认证)
 	lvyunController := controllers.NewLvyunController(proxy.GetGlobalRegistry())

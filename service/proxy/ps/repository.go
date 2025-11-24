@@ -9,7 +9,6 @@ import (
 	"time"
 
 	"gorm.io/gorm"
-	"gorm.io/gorm/clause"
 )
 
 // Repository PS数据仓库
@@ -108,22 +107,8 @@ func (r *Repository) SaveFamilyMembers(ctx context.Context, data []interface{}, 
 		return nil
 	}
 
-	// 使用 UPSERT 操作：INSERT ... ON CONFLICT ... DO UPDATE
-	result := r.db.WithContext(ctx).Clauses(clause.OnConflict{
-		Columns:   []clause.Column{{Name: "unique_key"}},
-		DoUpdates: clause.AssignmentColumns([]string{
-			"c_family_id", "emplid", "c_fmy_relationship", "c_family_name",
-			"date1", "eff_status", "hrs_row_add_dttm", "hrs_row_add_oprid",
-			"hrs_row_upd_dttm", "hrs_row_upd_oprid", "adb_date", "ds", "sync_time",
-		}),
-	}).Create(&records)
-
-	if result.Error != nil {
-		return fmt.Errorf("保存家族成员数据失败: %v", result.Error)
-	}
-
-	slog.Info("保存家族成员数据成功", "count", len(records), "rows_affected", result.RowsAffected)
-	return nil
+	// 使用分批UPSERT，避免PostgreSQL参数限制
+	return r.batchUpsertFamilyMembers(ctx, records)
 }
 
 // GetFamilyMembers 查询家族成员数据
@@ -308,27 +293,8 @@ func (r *Repository) SavePositions(ctx context.Context, data []interface{}, ds s
 		return nil
 	}
 
-	// 使用 UPSERT 操作：INSERT ... ON CONFLICT ... DO UPDATE
-	result := r.db.WithContext(ctx).Clauses(clause.OnConflict{
-		Columns:   []clause.Column{{Name: "unique_key"}},
-		DoUpdates: clause.AssignmentColumns([]string{
-			"position_nbr", "posn_descr", "business_unit", "business_descr",
-			"deptid", "dept_descr", "c_dept_type", "jobcode", "jobcode_descr",
-			"c_country_desc", "c_state_desc", "c_city_desc", "address1",
-			"reports_to", "descr100", "emplid", "name", "c_supv_lvl", "c_supv_lvl_desc",
-			"bgn_dt", "end_dt", "descr1", "descr2", "hrs_row_add_dttm", "hrs_row_add_oprid",
-			"hrs_row_upd_dttm", "hrs_row_upd_oprid", "c_old_posn_nbr", "createdttm",
-			"c_int_flag", "effdt", "adb_date", "c_sequence_id", "c_sequence_descr",
-			"c_subsequence_id", "c_subsequence_desc", "ds", "sync_time",
-		}),
-	}).Create(&records)
-
-	if result.Error != nil {
-		return fmt.Errorf("保存岗位数据失败: %v", result.Error)
-	}
-
-	slog.Info("保存岗位数据成功", "count", len(records), "rows_affected", result.RowsAffected)
-	return nil
+	// 使用分批UPSERT，避免PostgreSQL参数限制
+	return r.batchUpsertPositions(ctx, records)
 }
 
 // SaveOrganizations 保存组织数据
@@ -424,25 +390,8 @@ func (r *Repository) SaveOrganizations(ctx context.Context, data []interface{}, 
 		return nil
 	}
 
-	// 使用 UPSERT 操作：INSERT ... ON CONFLICT ... DO UPDATE
-	result := r.db.WithContext(ctx).Clauses(clause.OnConflict{
-		Columns:   []clause.Column{{Name: "unique_key"}},
-		DoUpdates: clause.AssignmentColumns([]string{
-			"setid", "deptid", "tree_level_num", "tree_node_num", "dept_descr",
-			"c_dept_type", "c_dept_type_descr", "c_country_desc", "c_state_desc",
-			"c_city_desc", "address1", "parentname", "c_dept_descr", "emplid", "name",
-			"bgn_dt", "end_dt", "hrs_row_add_dttm", "hrs_row_add_oprid",
-			"hrs_row_upd_dttm", "hrs_row_upd_oprid", "c_old_deptid", "createdttm",
-			"c_int_flag", "effdt", "c_company", "c_company_desc", "adb_date", "ds", "sync_time",
-		}),
-	}).Create(&records)
-
-	if result.Error != nil {
-		return fmt.Errorf("保存组织数据失败: %v", result.Error)
-	}
-
-	slog.Info("保存组织数据成功", "count", len(records), "rows_affected", result.RowsAffected)
-	return nil
+	// 使用分批UPSERT，避免PostgreSQL参数限制
+	return r.batchUpsertOrganizations(ctx, records)
 }
 
 // SaveEmployees 保存员工数据
@@ -552,31 +501,8 @@ func (r *Repository) SaveEmployees(ctx context.Context, data []interface{}, ds s
 		return nil
 	}
 
-	// 使用 UPSERT 操作：INSERT ... ON CONFLICT ... DO UPDATE
-	result := r.db.WithContext(ctx).Clauses(clause.OnConflict{
-		Columns:   []clause.Column{{Name: "unique_key"}},
-		DoUpdates: clause.AssignmentColumns([]string{
-			"hrs_row_add_dttm", "hrs_row_add_oprid", "hrs_row_upd_dttm", "hrs_row_upd_oprid",
-			"createdttm", "emplid", "name", "sex", "c_sex_descr", "mar_status", "c_mar_descr",
-			"birthdate", "c_birth_type", "c_birtype_descr", "c_birthdate", "c_birthdate1",
-			"c_country_desc1", "c_country_desc2", "c_state_desc1", "c_state_desc2",
-			"c_ethnic_grp_desc", "c_ethnic_grp_desc1", "c_pers_polity_desc",
-			"address1", "address3", "c_nid_type_desc", "national_id", "phone", "email_addr",
-			"education_lvl_achv", "c_education_descr", "school_descr", "major_descr",
-			"c_hire_date", "c_leave_date", "rehire_dt", "empl_class", "c_emplcls_descr",
-			"business_descr", "deptid", "tree_node_num", "dept_descr", "jobcode", "jobcode_descr",
-			"position_nbr", "posn_descr", "c_supv_lvl", "c_supv_lvl_desc",
-			"c_country_desc", "c_state_desc", "c_city_desc", "address2", "c_int_flag",
-			"adb_date", "ds", "sync_time",
-		}),
-	}).Create(&records)
-
-	if result.Error != nil {
-		return fmt.Errorf("保存员工数据失败: %v", result.Error)
-	}
-
-	slog.Info("保存员工数据成功", "count", len(records), "rows_affected", result.RowsAffected)
-	return nil
+	// 使用分批UPSERT，避免PostgreSQL参数限制
+	return r.batchUpsertEmployees(ctx, records)
 }
 
 // SaveEmployeeHonors 保存员工荣誉数据
@@ -653,22 +579,8 @@ func (r *Repository) SaveEmployeeHonors(ctx context.Context, data []interface{},
 		return nil
 	}
 
-	// 使用 UPSERT 操作：INSERT ... ON CONFLICT ... DO UPDATE
-	result := r.db.WithContext(ctx).Clauses(clause.OnConflict{
-		Columns:   []clause.Column{{Name: "unique_key"}},
-		DoUpdates: clause.AssignmentColumns([]string{
-			"emplid", "begin_dt", "eff_status", "end_dt", "descr254", "descr254a",
-			"comments_256", "deptid", "dept_descr", "hrs_row_add_dttm", "hrs_row_add_oprid",
-			"hrs_row_upd_dttm", "hrs_row_upd_oprid", "adb_date", "ds", "sync_time",
-		}),
-	}).Create(&records)
-
-	if result.Error != nil {
-		return fmt.Errorf("保存员工荣誉数据失败: %v", result.Error)
-	}
-
-	slog.Info("保存员工荣誉数据成功", "count", len(records), "rows_affected", result.RowsAffected)
-	return nil
+	// 使用分批UPSERT，避免PostgreSQL参数限制
+	return r.batchUpsertEmployeeHonors(ctx, records)
 }
 
 // SaveFamilyMain 保存家族父表数据
@@ -737,21 +649,6 @@ func (r *Repository) SaveFamilyMain(ctx context.Context, data []interface{}, ds 
 		return nil
 	}
 
-	// 使用 UPSERT 操作：INSERT ... ON CONFLICT ... DO UPDATE
-	result := r.db.WithContext(ctx).Clauses(clause.OnConflict{
-		Columns:   []clause.Column{{Name: "unique_key"}},
-		DoUpdates: clause.AssignmentColumns([]string{
-			"c_family_id", "emplid", "c_family_name", "date1", "eff_status",
-			"effdt_to", "hrs_row_add_dttm", "hrs_row_add_oprid",
-			"hrs_row_upd_dttm", "hrs_row_upd_oprid", "adb_date", "ds", "sync_time",
-		}),
-	}).Create(&records)
-
-	if result.Error != nil {
-		return fmt.Errorf("保存家族父表数据失败: %v", result.Error)
-	}
-
-	slog.Info("保存家族父表数据成功", "count", len(records), "rows_affected", result.RowsAffected)
-	return nil
+	// 使用分批UPSERT，避免PostgreSQL参数限制
+	return r.batchUpsertFamilyMain(ctx, records)
 }
-

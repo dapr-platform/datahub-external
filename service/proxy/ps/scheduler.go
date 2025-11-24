@@ -2,6 +2,7 @@ package ps
 
 import (
 	"context"
+	"datahub-external/service/proxy"
 	"fmt"
 	"log/slog"
 	"time"
@@ -11,17 +12,17 @@ import (
 
 // SchedulerConfig 调度器配置
 type SchedulerConfig struct {
-	FamilyMemberCron   string // 家族成员调度表达式
-	PositionIncCron    string // 岗位增量调度表达式（每天凌晨4:30）
-	PositionAllCron    string // 岗位全量调度表达式（每周日凌晨3:30）
+	FamilyMemberCron    string // 家族成员调度表达式
+	PositionIncCron     string // 岗位增量调度表达式（每天凌晨4:30）
+	PositionAllCron     string // 岗位全量调度表达式（每周日凌晨3:30）
 	OrganizationIncCron string // 组织增量调度表达式（每天凌晨4:30）
 	OrganizationAllCron string // 组织全量调度表达式（每周日凌晨3:30）
-	EmployeeIncCron    string // 员工增量调度表达式（每天凌晨4:30）
-	EmployeeAllCron    string // 员工全量调度表达式（每周日凌晨3:30）
-	EmployeeHonorCron  string // 员工荣誉调度表达式（每周日凌晨3:30）
-	FamilyMainCron     string // 家族父表调度表达式（每周日凌晨3:30）
-	PageSize           int    // 每页大小
-	MaxPages           int    // 最大页数（防止无限循环）
+	EmployeeIncCron     string // 员工增量调度表达式（每天凌晨4:30）
+	EmployeeAllCron     string // 员工全量调度表达式（每周日凌晨3:30）
+	EmployeeHonorCron   string // 员工荣誉调度表达式（每周日凌晨3:30）
+	FamilyMainCron      string // 家族父表调度表达式（每周日凌晨3:30）
+	PageSize            int    // 每页大小
+	MaxPages            int    // 最大页数（防止无限循环）
 }
 
 // Scheduler PS调度器
@@ -177,41 +178,52 @@ func (s *Scheduler) Stop() {
 
 // syncFamilyMembers 同步家族成员数据
 func (s *Scheduler) syncFamilyMembers() {
-	slog.Info("开始同步PS家族成员数据")
+	// 记录任务开始
+	taskRecordService := proxy.GetGlobalTaskRecordService()
+	taskID := taskRecordService.StartTask("ps", "family-members")
+
+	slog.Info("开始同步PS家族成员数据", "task_id", taskID)
 
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Minute)
 	defer cancel()
+
+	var totalRecords int
+	var err error
+
+	defer func() {
+		taskRecordService.FinishTask(taskID, totalRecords, err)
+	}()
 
 	// 计算DS分区字段（当天日期减1天，格式：YYYYMMDD）
 	// 根据API文档：2025年3月21日3点后调用传 20250320
 	yesterday := time.Now().AddDate(0, 0, -1)
 	ds := yesterday.Format("20060102")
 
-	slog.Info("开始同步家族成员数据", "ds", ds)
+	slog.Info("开始同步家族成员数据", "ds", ds, "task_id", taskID)
 
-	totalRecords := 0
 	pageNum := 1
 
 	// 分页查询所有数据
 	for pageNum <= s.config.MaxPages {
-		slog.Info("查询家族成员数据", "ds", ds, "page", pageNum, "pageSize", s.config.PageSize)
+		slog.Info("查询家族成员数据", "ds", ds, "page", pageNum, "pageSize", s.config.PageSize, "task_id", taskID)
 
 		// 查询数据
-		result, err := s.client.QueryFamilyMembers(ctx, pageNum, s.config.PageSize, ds, "")
+		var result []interface{}
+		result, err = s.client.QueryFamilyMembers(ctx, pageNum, s.config.PageSize, ds, "")
 		if err != nil {
-			slog.Error("同步家族成员数据失败", "error", err, "page", pageNum)
+			slog.Error("同步家族成员数据失败", "error", err, "page", pageNum, "task_id", taskID)
 			return
 		}
 
 		// 检查是否有数据
 		if len(result) == 0 {
-			slog.Info("没有更多数据，同步完成", "page", pageNum)
+			slog.Info("没有更多数据，同步完成", "page", pageNum, "task_id", taskID)
 			break
 		}
 
 		// 保存到数据库
-		if err := s.repository.SaveFamilyMembers(ctx, result, ds); err != nil {
-			slog.Error("保存家族成员数据失败", "error", err, "page", pageNum)
+		if err = s.repository.SaveFamilyMembers(ctx, result, ds); err != nil {
+			slog.Error("保存家族成员数据失败", "error", err, "page", pageNum, "task_id", taskID)
 			return
 		}
 
@@ -219,7 +231,7 @@ func (s *Scheduler) syncFamilyMembers() {
 
 		// 如果返回的记录数小于pageSize，说明已经是最后一页
 		if len(result) < s.config.PageSize {
-			slog.Info("已到最后一页，同步完成", "page", pageNum, "count", len(result))
+			slog.Info("已到最后一页，同步完成", "page", pageNum, "count", len(result), "task_id", taskID)
 			break
 		}
 
@@ -229,13 +241,13 @@ func (s *Scheduler) syncFamilyMembers() {
 		time.Sleep(1 * time.Second)
 	}
 
-	slog.Info("同步PS家族成员数据完成", "ds", ds, "total_records", totalRecords, "total_pages", pageNum-1)
+	slog.Info("同步PS家族成员数据完成", "ds", ds, "total_records", totalRecords, "total_pages", pageNum-1, "task_id", taskID)
 }
 
 // TriggerSync 手动触发同步
 func (s *Scheduler) TriggerSync(dataType string) error {
 	slog.Info("调度器收到同步触发请求", "data_type", dataType)
-	
+
 	switch dataType {
 	case "family-members":
 		slog.Info("开始异步执行家族成员数据同步")
@@ -309,7 +321,7 @@ func (s *Scheduler) GetNextRun() map[string]time.Time {
 // syncPositionsInc 同步岗位增量数据
 func (s *Scheduler) syncPositionsInc() {
 	slog.Info("开始同步PS岗位增量数据")
-	s.syncData("岗位增量", true, func(ctx context.Context, pageNum, pageSize int, ds string) ([]interface{}, error) {
+	s.syncData("岗位增量", "positions-inc", true, func(ctx context.Context, pageNum, pageSize int, ds string) ([]interface{}, error) {
 		return s.client.QueryPositions(ctx, pageNum, pageSize, ds, true)
 	}, func(ctx context.Context, data []interface{}, ds string) error {
 		return s.repository.SavePositions(ctx, data, ds)
@@ -319,7 +331,7 @@ func (s *Scheduler) syncPositionsInc() {
 // syncPositionsAll 同步岗位全量数据
 func (s *Scheduler) syncPositionsAll() {
 	slog.Info("开始同步PS岗位全量数据")
-	s.syncData("岗位全量", false, func(ctx context.Context, pageNum, pageSize int, ds string) ([]interface{}, error) {
+	s.syncData("岗位全量", "positions-all", false, func(ctx context.Context, pageNum, pageSize int, ds string) ([]interface{}, error) {
 		return s.client.QueryPositions(ctx, pageNum, pageSize, ds, false)
 	}, func(ctx context.Context, data []interface{}, ds string) error {
 		return s.repository.SavePositions(ctx, data, ds)
@@ -329,7 +341,7 @@ func (s *Scheduler) syncPositionsAll() {
 // syncOrganizationsInc 同步组织增量数据
 func (s *Scheduler) syncOrganizationsInc() {
 	slog.Info("开始同步PS组织增量数据")
-	s.syncData("组织增量", true, func(ctx context.Context, pageNum, pageSize int, ds string) ([]interface{}, error) {
+	s.syncData("组织增量", "organizations-inc", true, func(ctx context.Context, pageNum, pageSize int, ds string) ([]interface{}, error) {
 		return s.client.QueryOrganizations(ctx, pageNum, pageSize, ds, true)
 	}, func(ctx context.Context, data []interface{}, ds string) error {
 		return s.repository.SaveOrganizations(ctx, data, ds)
@@ -339,7 +351,7 @@ func (s *Scheduler) syncOrganizationsInc() {
 // syncOrganizationsAll 同步组织全量数据
 func (s *Scheduler) syncOrganizationsAll() {
 	slog.Info("开始同步PS组织全量数据")
-	s.syncData("组织全量", false, func(ctx context.Context, pageNum, pageSize int, ds string) ([]interface{}, error) {
+	s.syncData("组织全量", "organizations-all", false, func(ctx context.Context, pageNum, pageSize int, ds string) ([]interface{}, error) {
 		return s.client.QueryOrganizations(ctx, pageNum, pageSize, ds, false)
 	}, func(ctx context.Context, data []interface{}, ds string) error {
 		return s.repository.SaveOrganizations(ctx, data, ds)
@@ -349,7 +361,7 @@ func (s *Scheduler) syncOrganizationsAll() {
 // syncEmployeesInc 同步员工增量数据
 func (s *Scheduler) syncEmployeesInc() {
 	slog.Info("开始同步PS员工增量数据")
-	s.syncData("员工增量", true, func(ctx context.Context, pageNum, pageSize int, ds string) ([]interface{}, error) {
+	s.syncData("员工增量", "employees-inc", true, func(ctx context.Context, pageNum, pageSize int, ds string) ([]interface{}, error) {
 		return s.client.QueryEmployees(ctx, pageNum, pageSize, ds, "", true)
 	}, func(ctx context.Context, data []interface{}, ds string) error {
 		return s.repository.SaveEmployees(ctx, data, ds)
@@ -359,7 +371,7 @@ func (s *Scheduler) syncEmployeesInc() {
 // syncEmployeesAll 同步员工全量数据
 func (s *Scheduler) syncEmployeesAll() {
 	slog.Info("开始同步PS员工全量数据")
-	s.syncData("员工全量", false, func(ctx context.Context, pageNum, pageSize int, ds string) ([]interface{}, error) {
+	s.syncData("员工全量", "employees-all", false, func(ctx context.Context, pageNum, pageSize int, ds string) ([]interface{}, error) {
 		return s.client.QueryEmployees(ctx, pageNum, pageSize, ds, "", false)
 	}, func(ctx context.Context, data []interface{}, ds string) error {
 		return s.repository.SaveEmployees(ctx, data, ds)
@@ -369,7 +381,7 @@ func (s *Scheduler) syncEmployeesAll() {
 // syncEmployeeHonors 同步员工荣誉数据
 func (s *Scheduler) syncEmployeeHonors() {
 	slog.Info("开始同步PS员工荣誉数据")
-	s.syncData("员工荣誉", false, func(ctx context.Context, pageNum, pageSize int, ds string) ([]interface{}, error) {
+	s.syncData("员工荣誉", "employee-honors", false, func(ctx context.Context, pageNum, pageSize int, ds string) ([]interface{}, error) {
 		return s.client.QueryEmployeeHonors(ctx, pageNum, pageSize, ds, "")
 	}, func(ctx context.Context, data []interface{}, ds string) error {
 		return s.repository.SaveEmployeeHonors(ctx, data, ds)
@@ -379,7 +391,7 @@ func (s *Scheduler) syncEmployeeHonors() {
 // syncFamilyMain 同步家族父表数据
 func (s *Scheduler) syncFamilyMain() {
 	slog.Info("开始同步PS家族父表数据")
-	s.syncData("家族父表", false, func(ctx context.Context, pageNum, pageSize int, ds string) ([]interface{}, error) {
+	s.syncData("家族父表", "family-main", false, func(ctx context.Context, pageNum, pageSize int, ds string) ([]interface{}, error) {
 		return s.client.QueryFamilyMain(ctx, pageNum, pageSize, ds, "")
 	}, func(ctx context.Context, data []interface{}, ds string) error {
 		return s.repository.SaveFamilyMain(ctx, data, ds)
@@ -389,12 +401,24 @@ func (s *Scheduler) syncFamilyMain() {
 // syncData 通用同步数据方法
 func (s *Scheduler) syncData(
 	dataName string,
+	taskType string,
 	isIncremental bool,
 	queryFunc func(ctx context.Context, pageNum, pageSize int, ds string) ([]interface{}, error),
 	saveFunc func(ctx context.Context, data []interface{}, ds string) error,
 ) {
+	// 记录任务开始
+	taskRecordService := proxy.GetGlobalTaskRecordService()
+	taskID := taskRecordService.StartTask("ps", taskType)
+
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Minute)
 	defer cancel()
+
+	var totalRecords int
+	var err error
+
+	defer func() {
+		taskRecordService.FinishTask(taskID, totalRecords, err)
+	}()
 
 	// 计算DS分区字段
 	// 增量接口（3-4点更新）：使用前一天日期，4:30调度
@@ -402,31 +426,31 @@ func (s *Scheduler) syncData(
 	yesterday := time.Now().AddDate(0, 0, -1)
 	ds := yesterday.Format("20060102")
 
-	slog.Info(fmt.Sprintf("开始同步%s数据", dataName), "ds", ds, "is_incremental", isIncremental)
+	slog.Info(fmt.Sprintf("开始同步%s数据", dataName), "ds", ds, "is_incremental", isIncremental, "task_id", taskID)
 
-	totalRecords := 0
 	pageNum := 1
 
 	// 分页查询所有数据
 	for pageNum <= s.config.MaxPages {
-		slog.Info(fmt.Sprintf("查询%s数据", dataName), "ds", ds, "page", pageNum, "pageSize", s.config.PageSize)
+		slog.Info(fmt.Sprintf("查询%s数据", dataName), "ds", ds, "page", pageNum, "pageSize", s.config.PageSize, "task_id", taskID)
 
 		// 查询数据
-		result, err := queryFunc(ctx, pageNum, s.config.PageSize, ds)
+		var result []interface{}
+		result, err = queryFunc(ctx, pageNum, s.config.PageSize, ds)
 		if err != nil {
-			slog.Error(fmt.Sprintf("同步%s数据失败", dataName), "error", err, "page", pageNum)
+			slog.Error(fmt.Sprintf("同步%s数据失败", dataName), "error", err, "page", pageNum, "task_id", taskID)
 			return
 		}
 
 		// 检查是否有数据
 		if len(result) == 0 {
-			slog.Info(fmt.Sprintf("没有更多%s数据，同步完成", dataName), "page", pageNum)
+			slog.Info(fmt.Sprintf("没有更多%s数据，同步完成", dataName), "page", pageNum, "task_id", taskID)
 			break
 		}
 
 		// 保存到数据库
-		if err := saveFunc(ctx, result, ds); err != nil {
-			slog.Error(fmt.Sprintf("保存%s数据失败", dataName), "error", err, "page", pageNum)
+		if err = saveFunc(ctx, result, ds); err != nil {
+			slog.Error(fmt.Sprintf("保存%s数据失败", dataName), "error", err, "page", pageNum, "task_id", taskID)
 			return
 		}
 
@@ -434,7 +458,7 @@ func (s *Scheduler) syncData(
 
 		// 如果返回的记录数小于pageSize，说明已经是最后一页
 		if len(result) < s.config.PageSize {
-			slog.Info(fmt.Sprintf("已到最后一页，%s同步完成", dataName), "page", pageNum, "count", len(result))
+			slog.Info(fmt.Sprintf("已到最后一页，%s同步完成", dataName), "page", pageNum, "count", len(result), "task_id", taskID)
 			break
 		}
 
@@ -444,6 +468,5 @@ func (s *Scheduler) syncData(
 		time.Sleep(1 * time.Second)
 	}
 
-	slog.Info(fmt.Sprintf("同步%s数据完成", dataName), "ds", ds, "total_records", totalRecords, "total_pages", pageNum-1)
+	slog.Info(fmt.Sprintf("同步%s数据完成", dataName), "ds", ds, "total_records", totalRecords, "total_pages", pageNum-1, "task_id", taskID)
 }
-

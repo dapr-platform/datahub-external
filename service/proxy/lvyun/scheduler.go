@@ -2,6 +2,8 @@ package lvyun
 
 import (
 	"context"
+	"datahub-external/service/proxy"
+	"fmt"
 	"log/slog"
 	"time"
 
@@ -112,10 +114,21 @@ func (s *Scheduler) Stop() {
 
 // syncReservations 同步预订单数据
 func (s *Scheduler) syncReservations() {
-	slog.Info("开始同步预订单数据", "hotel_code", s.config.HotelCode)
+	// 记录任务开始
+	taskRecordService := proxy.GetGlobalTaskRecordService()
+	taskID := taskRecordService.StartTask("lvyun", "reservations")
+
+	slog.Info("开始同步预订单数据", "hotel_code", s.config.HotelCode, "task_id", taskID)
 
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
 	defer cancel()
+
+	var recordCount int
+	var err error
+
+	defer func() {
+		taskRecordService.FinishTask(taskID, recordCount, err)
+	}()
 
 	// 计算查询日期范围
 	now := time.Now()
@@ -132,34 +145,48 @@ func (s *Scheduler) syncReservations() {
 	}
 
 	// 查询数据
-	result, err := s.client.queryReservations(ctx, params)
+	var result interface{}
+	result, err = s.client.queryReservations(ctx, params)
 	if err != nil {
-		slog.Error("同步预订单数据失败", "error", err)
+		slog.Error("同步预订单数据失败", "error", err, "task_id", taskID)
 		return
 	}
 
 	// 转换为数组
 	data, ok := result.([]interface{})
 	if !ok {
-		slog.Error("预订单数据格式错误")
+		slog.Error("预订单数据格式错误", "task_id", taskID)
+		err = fmt.Errorf("预订单数据格式错误")
 		return
 	}
 
 	// 保存到数据库
-	if err := s.repository.SaveReservations(ctx, data); err != nil {
-		slog.Error("保存预订单数据失败", "error", err)
+	if err = s.repository.SaveReservations(ctx, data); err != nil {
+		slog.Error("保存预订单数据失败", "error", err, "task_id", taskID)
 		return
 	}
 
-	slog.Info("同步预订单数据完成", "count", len(data))
+	recordCount = len(data)
+	slog.Info("同步预订单数据完成", "count", recordCount, "task_id", taskID)
 }
 
 // syncRegistrations 同步登记单数据
 func (s *Scheduler) syncRegistrations() {
-	slog.Info("开始同步登记单数据", "hotel_code", s.config.HotelCode)
+	// 记录任务开始
+	taskRecordService := proxy.GetGlobalTaskRecordService()
+	taskID := taskRecordService.StartTask("lvyun", "registrations")
+
+	slog.Info("开始同步登记单数据", "hotel_code", s.config.HotelCode, "task_id", taskID)
 
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
 	defer cancel()
+
+	var recordCount int
+	var err error
+
+	defer func() {
+		taskRecordService.FinishTask(taskID, recordCount, err)
+	}()
 
 	// 计算查询日期范围
 	now := time.Now()
@@ -176,34 +203,48 @@ func (s *Scheduler) syncRegistrations() {
 	}
 
 	// 查询数据
-	result, err := s.client.queryRegistrations(ctx, params)
+	var result interface{}
+	result, err = s.client.queryRegistrations(ctx, params)
 	if err != nil {
-		slog.Error("同步登记单数据失败", "error", err)
+		slog.Error("同步登记单数据失败", "error", err, "task_id", taskID)
 		return
 	}
 
 	// 转换为数组
 	data, ok := result.([]interface{})
 	if !ok {
-		slog.Error("登记单数据格式错误")
+		slog.Error("登记单数据格式错误", "task_id", taskID)
+		err = fmt.Errorf("登记单数据格式错误")
 		return
 	}
 
 	// 保存到数据库
-	if err := s.repository.SaveRegistrations(ctx, data); err != nil {
-		slog.Error("保存登记单数据失败", "error", err)
+	if err = s.repository.SaveRegistrations(ctx, data); err != nil {
+		slog.Error("保存登记单数据失败", "error", err, "task_id", taskID)
 		return
 	}
 
-	slog.Info("同步登记单数据完成", "count", len(data))
+	recordCount = len(data)
+	slog.Info("同步登记单数据完成", "count", recordCount, "task_id", taskID)
 }
 
 // syncCheckouts 同步结账单数据
 func (s *Scheduler) syncCheckouts() {
-	slog.Info("开始同步结账单数据", "hotel_code", s.config.HotelCode)
+	// 记录任务开始
+	taskRecordService := proxy.GetGlobalTaskRecordService()
+	taskID := taskRecordService.StartTask("lvyun", "checkouts")
+
+	slog.Info("开始同步结账单数据", "hotel_code", s.config.HotelCode, "task_id", taskID)
 
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
 	defer cancel()
+
+	var recordCount int
+	var err error
+
+	defer func() {
+		taskRecordService.FinishTask(taskID, recordCount, err)
+	}()
 
 	// 查询今天的数据（00:00:00）
 	now := time.Now()
@@ -215,34 +256,48 @@ func (s *Scheduler) syncCheckouts() {
 	}
 
 	// 查询数据
-	result, err := s.client.queryCheckouts(ctx, params)
+	var result interface{}
+	result, err = s.client.queryCheckouts(ctx, params)
 	if err != nil {
-		slog.Error("同步结账单数据失败", "error", err)
+		slog.Error("同步结账单数据失败", "error", err, "task_id", taskID)
 		return
 	}
 
 	// 转换为数组
 	data, ok := result.([]interface{})
 	if !ok {
-		slog.Error("结账单数据格式错误")
+		slog.Error("结账单数据格式错误", "task_id", taskID)
+		err = fmt.Errorf("结账单数据格式错误")
 		return
 	}
 
 	// 保存到数据库
-	if err := s.repository.SaveCheckouts(ctx, data); err != nil {
-		slog.Error("保存结账单数据失败", "error", err)
+	if err = s.repository.SaveCheckouts(ctx, data); err != nil {
+		slog.Error("保存结账单数据失败", "error", err, "task_id", taskID)
 		return
 	}
 
-	slog.Info("同步结账单数据完成", "count", len(data))
+	recordCount = len(data)
+	slog.Info("同步结账单数据完成", "count", recordCount, "task_id", taskID)
 }
 
 // syncBusinessReports 同步营业报表数据
 func (s *Scheduler) syncBusinessReports() {
-	slog.Info("开始同步营业报表数据", "hotel_code", s.config.HotelCode)
+	// 记录任务开始
+	taskRecordService := proxy.GetGlobalTaskRecordService()
+	taskID := taskRecordService.StartTask("lvyun", "business-reports")
+
+	slog.Info("开始同步营业报表数据", "hotel_code", s.config.HotelCode, "task_id", taskID)
 
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
 	defer cancel()
+
+	var recordCount int
+	var err error
+
+	defer func() {
+		taskRecordService.FinishTask(taskID, recordCount, err)
+	}()
 
 	// 计算查询日期范围
 	now := time.Now()
@@ -259,26 +314,29 @@ func (s *Scheduler) syncBusinessReports() {
 	}
 
 	// 查询数据
-	result, err := s.client.queryBusinessReport(ctx, params)
+	var result interface{}
+	result, err = s.client.queryBusinessReport(ctx, params)
 	if err != nil {
-		slog.Error("同步营业报表数据失败", "error", err)
+		slog.Error("同步营业报表数据失败", "error", err, "task_id", taskID)
 		return
 	}
 
 	// 转换为数组
 	data, ok := result.([]interface{})
 	if !ok {
-		slog.Error("营业报表数据格式错误")
+		slog.Error("营业报表数据格式错误", "task_id", taskID)
+		err = fmt.Errorf("营业报表数据格式错误")
 		return
 	}
 
 	// 保存到数据库
-	if err := s.repository.SaveBusinessReports(ctx, data); err != nil {
-		slog.Error("保存营业报表数据失败", "error", err)
+	if err = s.repository.SaveBusinessReports(ctx, data); err != nil {
+		slog.Error("保存营业报表数据失败", "error", err, "task_id", taskID)
 		return
 	}
 
-	slog.Info("同步营业报表数据完成", "count", len(data))
+	recordCount = len(data)
+	slog.Info("同步营业报表数据完成", "count", recordCount, "task_id", taskID)
 }
 
 // TriggerSync 手动触发同步

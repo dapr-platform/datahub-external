@@ -1348,6 +1348,124 @@ const docTemplate = `{
                     }
                 }
             }
+        },
+        "/task-records": {
+            "get": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "查询定期任务的执行记录，支持按数据源、任务类型、状态过滤",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "数据源"
+                ],
+                "summary": "查询任务执行记录",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "数据源名称（lvyun/ps）",
+                        "name": "data_source",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "任务类型（如：reservations, positions-inc等）",
+                        "name": "task_type",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "执行状态（running/success/failed）",
+                        "name": "status",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "返回记录数（默认100）",
+                        "name": "limit",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/controllers.APIResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "$ref": "#/definitions/proxy.TaskRecord"
+                                            }
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                }
+            }
+        },
+        "/task-statistics": {
+            "get": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "获取任务执行的统计信息（总数、成功数、失败数、运行中）",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "数据源"
+                ],
+                "summary": "获取任务统计信息",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "数据源名称（lvyun/ps）",
+                        "name": "data_source",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/controllers.APIResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "object",
+                                            "additionalProperties": true
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                }
+            }
         }
     },
     "definitions": {
@@ -1670,6 +1788,74 @@ const docTemplate = `{
                     "type": "string"
                 }
             }
+        },
+        "proxy.TaskRecord": {
+            "type": "object",
+            "properties": {
+                "data_source": {
+                    "description": "数据源名称（lvyun/ps）",
+                    "type": "string"
+                },
+                "duration": {
+                    "description": "执行时长（毫秒）",
+                    "type": "integer"
+                },
+                "end_time": {
+                    "description": "结束时间",
+                    "type": "string"
+                },
+                "error_msg": {
+                    "description": "错误信息",
+                    "type": "string"
+                },
+                "id": {
+                    "description": "记录ID（使用时间戳生成）",
+                    "type": "string"
+                },
+                "record_count": {
+                    "description": "处理记录数",
+                    "type": "integer"
+                },
+                "start_time": {
+                    "description": "开始时间",
+                    "type": "string"
+                },
+                "status": {
+                    "description": "执行状态",
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/proxy.TaskStatus"
+                        }
+                    ]
+                },
+                "task_type": {
+                    "description": "任务类型（reservations/positions-inc等）",
+                    "type": "string"
+                }
+            }
+        },
+        "proxy.TaskStatus": {
+            "type": "string",
+            "enum": [
+                "running",
+                "success",
+                "failed"
+            ],
+            "x-enum-comments": {
+                "TaskStatusFailed": "失败",
+                "TaskStatusRunning": "执行中",
+                "TaskStatusSuccess": "成功"
+            },
+            "x-enum-descriptions": [
+                "执行中",
+                "成功",
+                "失败"
+            ],
+            "x-enum-varnames": [
+                "TaskStatusRunning",
+                "TaskStatusSuccess",
+                "TaskStatusFailed"
+            ]
         }
     },
     "securityDefinitions": {
