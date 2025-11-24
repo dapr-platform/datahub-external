@@ -469,4 +469,15 @@ func (s *Scheduler) syncData(
 	}
 
 	slog.Info(fmt.Sprintf("同步%s数据完成", dataName), "ds", ds, "total_records", totalRecords, "total_pages", pageNum-1, "task_id", taskID)
+
+	// 如果是全量同步且成功完成，清理旧DS数据
+	if !isIncremental && err == nil && totalRecords > 0 {
+		slog.Info("全量同步成功，开始清理旧DS数据", "current_ds", ds, "task_id", taskID)
+		if cleanErr := s.repository.CleanOldDSData(ctx, ds); cleanErr != nil {
+			slog.Error("清理旧DS数据失败", "error", cleanErr, "task_id", taskID)
+			// 注意：清理失败不影响同步结果，只记录错误
+		} else {
+			slog.Info("清理旧DS数据成功", "current_ds", ds, "task_id", taskID)
+		}
+	}
 }

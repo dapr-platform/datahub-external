@@ -71,7 +71,7 @@ func (r *Repository) SaveFamilyMembers(ctx context.Context, data []interface{}, 
 			AdbDate:          resp.AdbDate,
 			DS:               ds,
 			SyncTime:         syncTime,
-			UniqueKey:        fmt.Sprintf("%d_%s_%s", resp.CFamilyID, resp.EmplID, ds),
+			UniqueKey:        fmt.Sprintf("%d_%s", resp.CFamilyID, resp.EmplID), // 不包含ds，只保留最新数据
 		}
 
 		// 解析时间字段
@@ -164,6 +164,69 @@ func (r *Repository) GetLatestDS(ctx context.Context) (string, error) {
 	return result.DS, nil
 }
 
+// CleanOldDSData 清理旧DS的数据（保留当前DS）
+// 用于全量同步成功后，删除旧版本的数据
+func (r *Repository) CleanOldDSData(ctx context.Context, currentDS string) error {
+	slog.Info("开始清理旧DS数据", "current_ds", currentDS)
+
+	// 清理家族成员旧数据
+	result := r.db.WithContext(ctx).Where("ds != ?", currentDS).Delete(&PSFamilyMember{})
+	if result.Error != nil {
+		return fmt.Errorf("清理家族成员旧数据失败: %v", result.Error)
+	}
+	if result.RowsAffected > 0 {
+		slog.Info("清理家族成员旧数据", "deleted", result.RowsAffected)
+	}
+
+	// 清理岗位旧数据
+	result = r.db.WithContext(ctx).Where("ds != ?", currentDS).Delete(&PSPosition{})
+	if result.Error != nil {
+		return fmt.Errorf("清理岗位旧数据失败: %v", result.Error)
+	}
+	if result.RowsAffected > 0 {
+		slog.Info("清理岗位旧数据", "deleted", result.RowsAffected)
+	}
+
+	// 清理组织旧数据
+	result = r.db.WithContext(ctx).Where("ds != ?", currentDS).Delete(&PSOrganization{})
+	if result.Error != nil {
+		return fmt.Errorf("清理组织旧数据失败: %v", result.Error)
+	}
+	if result.RowsAffected > 0 {
+		slog.Info("清理组织旧数据", "deleted", result.RowsAffected)
+	}
+
+	// 清理员工旧数据
+	result = r.db.WithContext(ctx).Where("ds != ?", currentDS).Delete(&PSEmployee{})
+	if result.Error != nil {
+		return fmt.Errorf("清理员工旧数据失败: %v", result.Error)
+	}
+	if result.RowsAffected > 0 {
+		slog.Info("清理员工旧数据", "deleted", result.RowsAffected)
+	}
+
+	// 清理员工荣誉旧数据
+	result = r.db.WithContext(ctx).Where("ds != ?", currentDS).Delete(&PSEmployeeHonor{})
+	if result.Error != nil {
+		return fmt.Errorf("清理员工荣誉旧数据失败: %v", result.Error)
+	}
+	if result.RowsAffected > 0 {
+		slog.Info("清理员工荣誉旧数据", "deleted", result.RowsAffected)
+	}
+
+	// 清理家族父表旧数据
+	result = r.db.WithContext(ctx).Where("ds != ?", currentDS).Delete(&PSFamilyMain{})
+	if result.Error != nil {
+		return fmt.Errorf("清理家族父表旧数据失败: %v", result.Error)
+	}
+	if result.RowsAffected > 0 {
+		slog.Info("清理家族父表旧数据", "deleted", result.RowsAffected)
+	}
+
+	slog.Info("清理旧DS数据完成", "current_ds", currentDS)
+	return nil
+}
+
 // parseDateTime 解析日期时间字符串，支持多种格式
 func parseDateTime(dateStr string) (time.Time, error) {
 	dateStr = strings.TrimSpace(dateStr)
@@ -247,7 +310,7 @@ func (r *Repository) SavePositions(ctx context.Context, data []interface{}, ds s
 			CSubsequenceDesc: resp.CSubsequenceDesc,
 			DS:               ds,
 			SyncTime:         syncTime,
-			UniqueKey:        fmt.Sprintf("%s_%s", resp.PositionNbr, ds),
+			UniqueKey:        resp.PositionNbr, // 不包含ds，只保留最新数据
 		}
 
 		// 解析时间字段
@@ -344,7 +407,7 @@ func (r *Repository) SaveOrganizations(ctx context.Context, data []interface{}, 
 			AdbDate:        resp.AdbDate,
 			DS:             ds,
 			SyncTime:       syncTime,
-			UniqueKey:      fmt.Sprintf("%s_%s", resp.DeptID, ds),
+			UniqueKey:      resp.DeptID, // 不包含ds，只保留最新数据
 		}
 
 		// 解析时间字段
@@ -470,7 +533,7 @@ func (r *Repository) SaveEmployees(ctx context.Context, data []interface{}, ds s
 			AdbDate:          resp.AdbDate,
 			DS:               ds,
 			SyncTime:         syncTime,
-			UniqueKey:        fmt.Sprintf("%s_%s", resp.EmplID, ds),
+			UniqueKey:        resp.EmplID, // 不包含ds，只保留最新数据
 		}
 
 		// 解析时间字段
@@ -547,8 +610,8 @@ func (r *Repository) SaveEmployeeHonors(ctx context.Context, data []interface{},
 		if resp.BeginDt != "" {
 			if t, err := parseDateTime(resp.BeginDt); err == nil {
 				record.BeginDt = &t
-				// 使用begin_dt构建唯一键
-				record.UniqueKey = fmt.Sprintf("%s_%s_%s", resp.EmplID, resp.BeginDt, ds)
+				// 使用emplid和begin_dt构建唯一键（不包含ds）
+				record.UniqueKey = fmt.Sprintf("%s_%s", resp.EmplID, resp.BeginDt)
 			}
 		}
 		if resp.EndDt != nil && *resp.EndDt != "" {
@@ -567,8 +630,9 @@ func (r *Repository) SaveEmployeeHonors(ctx context.Context, data []interface{},
 			}
 		}
 
+		// 如果没有begin_dt，使用emplid作为唯一键
 		if record.UniqueKey == "" {
-			record.UniqueKey = fmt.Sprintf("%s_%s", resp.EmplID, ds)
+			record.UniqueKey = resp.EmplID
 		}
 
 		records = append(records, record)
@@ -616,7 +680,7 @@ func (r *Repository) SaveFamilyMain(ctx context.Context, data []interface{}, ds 
 			AdbDate:        resp.AdbDate,
 			DS:             ds,
 			SyncTime:       syncTime,
-			UniqueKey:      fmt.Sprintf("%d_%s", resp.CFamilyID, ds),
+			UniqueKey:      fmt.Sprintf("%d", resp.CFamilyID), // 不包含ds，只保留最新数据
 		}
 
 		// 解析时间字段

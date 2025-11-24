@@ -18,9 +18,9 @@ type PSFamilyMember struct {
 	HrsRowUpdDttm    *time.Time `gorm:"column:hrs_row_upd_dttm;type:timestamp" json:"hrs_row_upd_dttm"`       // 数据修改时间（可为null）
 	HrsRowUpdOprid   string     `gorm:"column:hrs_row_upd_oprid;type:varchar(50)" json:"hrs_row_upd_oprid"`   // 更新操作人
 	AdbDate          string     `gorm:"column:adb_date;type:varchar(20)" json:"adb_date"`                     // 业务数据变动
-	DS               string     `gorm:"column:ds;type:varchar(20);index" json:"ds"`                           // 分区字段（YYYYMMDD）
+	DS               string     `gorm:"column:ds;type:varchar(20);index" json:"ds"`                           // 分区字段（YYYYMMDD）用于追溯，不参与唯一性
 	SyncTime         time.Time  `gorm:"column:sync_time;type:timestamp;index" json:"sync_time"`               // 同步时间
-	UniqueKey        string     `gorm:"column:unique_key;type:varchar(200);uniqueIndex" json:"unique_key"`    // 唯一键（c_family_id_emplid_ds）
+	UniqueKey        string     `gorm:"column:unique_key;type:varchar(200);uniqueIndex" json:"unique_key"`    // 唯一键（c_family_id_emplid）不含ds
 	CreatedAt        time.Time  `gorm:"column:created_at;type:timestamp;autoCreateTime" json:"created_at"`    // 创建时间
 	UpdatedAt        time.Time  `gorm:"column:updated_at;type:timestamp;autoUpdateTime" json:"updated_at"`    // 更新时间
 }
@@ -69,9 +69,9 @@ type PSPosition struct {
 	CSequenceDescr   string     `gorm:"column:c_sequence_descr;type:varchar(200)" json:"c_sequence_descr"` // 序列描述
 	CSubsequenceID   string     `gorm:"column:c_subsequence_id;type:varchar(50)" json:"c_subsequence_id"`  // 子序列代码
 	CSubsequenceDesc string     `gorm:"column:c_subsequence_desc;type:varchar(200)" json:"c_subsequence_desc"` // 子序描述
-	DS               string     `gorm:"column:ds;type:varchar(20);index" json:"ds"`                        // 分区字段
+	DS               string     `gorm:"column:ds;type:varchar(20);index" json:"ds"`                        // 分区字段（YYYYMMDD）用于追溯，不参与唯一性
 	SyncTime         time.Time  `gorm:"column:sync_time;type:timestamp;index" json:"sync_time"`            // 同步时间
-	UniqueKey        string     `gorm:"column:unique_key;type:varchar(200);uniqueIndex" json:"unique_key"` // 唯一键（position_nbr_ds）
+	UniqueKey        string     `gorm:"column:unique_key;type:varchar(200);uniqueIndex" json:"unique_key"` // 唯一键（position_nbr）不含ds
 	CreatedAt        time.Time  `gorm:"column:created_at;type:timestamp;autoCreateTime" json:"created_at"` // 创建时间
 	UpdatedAt        time.Time  `gorm:"column:updated_at;type:timestamp;autoUpdateTime" json:"updated_at"` // 更新时间
 }
@@ -112,9 +112,9 @@ type PSOrganization struct {
 	CCompany       string     `gorm:"column:c_company;type:varchar(50)" json:"c_company"`                // 公司ID
 	CCompanyDesc   string     `gorm:"column:c_company_desc;type:varchar(200)" json:"c_company_desc"`     // 公司名称
 	AdbDate        string     `gorm:"column:adb_date;type:varchar(20)" json:"adb_date"`                  // 业务数据变动时间
-	DS             string     `gorm:"column:ds;type:varchar(20);index" json:"ds"`                        // 分区字段
+	DS             string     `gorm:"column:ds;type:varchar(20);index" json:"ds"`                        // 分区字段（YYYYMMDD）用于追溯，不参与唯一性
 	SyncTime       time.Time  `gorm:"column:sync_time;type:timestamp;index" json:"sync_time"`            // 同步时间
-	UniqueKey      string     `gorm:"column:unique_key;type:varchar(200);uniqueIndex" json:"unique_key"` // 唯一键（deptid_ds）
+	UniqueKey      string     `gorm:"column:unique_key;type:varchar(200);uniqueIndex" json:"unique_key"` // 唯一键（deptid）不含ds
 	CreatedAt      time.Time  `gorm:"column:created_at;type:timestamp;autoCreateTime" json:"created_at"` // 创建时间
 	UpdatedAt      time.Time  `gorm:"column:updated_at;type:timestamp;autoUpdateTime" json:"updated_at"` // 更新时间
 }
@@ -181,9 +181,9 @@ type PSEmployee struct {
 	Address2           string     `gorm:"column:address2;type:varchar(500)" json:"address2"`                 // 办公地址
 	CIntFlag           string     `gorm:"column:c_int_flag;type:varchar(20)" json:"c_int_flag"`              // 初始化标识
 	AdbDate            string     `gorm:"column:adb_date;type:varchar(20)" json:"adb_date"`                  // 业务数据变动时间
-	DS                 string     `gorm:"column:ds;type:varchar(20);index" json:"ds"`                        // 分区字段
+	DS                 string     `gorm:"column:ds;type:varchar(20);index" json:"ds"`                        // 分区字段（YYYYMMDD）用于追溯，不参与唯一性
 	SyncTime           time.Time  `gorm:"column:sync_time;type:timestamp;index" json:"sync_time"`            // 同步时间
-	UniqueKey          string     `gorm:"column:unique_key;type:varchar(200);uniqueIndex" json:"unique_key"` // 唯一键（emplid_ds）
+	UniqueKey          string     `gorm:"column:unique_key;type:varchar(200);uniqueIndex" json:"unique_key"` // 唯一键（emplid）不含ds
 	CreatedAt          time.Time  `gorm:"column:created_at;type:timestamp;autoCreateTime" json:"created_at"` // 创建时间
 	UpdatedAt          time.Time  `gorm:"column:updated_at;type:timestamp;autoUpdateTime" json:"updated_at"` // 更新时间
 }
@@ -210,9 +210,9 @@ type PSEmployeeHonor struct {
 	HrsRowUpdDttm  *time.Time `gorm:"column:hrs_row_upd_dttm;type:timestamp" json:"hrs_row_upd_dttm"`   // 数据修改时间
 	HrsRowUpdOprid string     `gorm:"column:hrs_row_upd_oprid;type:varchar(50)" json:"hrs_row_upd_oprid"` // 更新操作人
 	AdbDate        string     `gorm:"column:adb_date;type:varchar(20)" json:"adb_date"`                 // 业务数据变动时间
-	DS             string     `gorm:"column:ds;type:varchar(20);index" json:"ds"`                       // 分区字段
+	DS             string     `gorm:"column:ds;type:varchar(20);index" json:"ds"`                       // 分区字段（YYYYMMDD）用于追溯，不参与唯一性
 	SyncTime       time.Time  `gorm:"column:sync_time;type:timestamp;index" json:"sync_time"`           // 同步时间
-	UniqueKey      string     `gorm:"column:unique_key;type:varchar(200);uniqueIndex" json:"unique_key"` // 唯一键（emplid_begin_dt_ds）
+	UniqueKey      string     `gorm:"column:unique_key;type:varchar(200);uniqueIndex" json:"unique_key"` // 唯一键（emplid_begin_dt）不含ds
 	CreatedAt      time.Time  `gorm:"column:created_at;type:timestamp;autoCreateTime" json:"created_at"` // 创建时间
 	UpdatedAt      time.Time  `gorm:"column:updated_at;type:timestamp;autoUpdateTime" json:"updated_at"` // 更新时间
 }
@@ -236,9 +236,9 @@ type PSFamilyMain struct {
 	HrsRowUpdDttm  *time.Time `gorm:"column:hrs_row_upd_dttm;type:timestamp" json:"hrs_row_upd_dttm"` // 数据修改时间
 	HrsRowUpdOprid string     `gorm:"column:hrs_row_upd_oprid;type:varchar(50)" json:"hrs_row_upd_oprid"` // 更新操作人
 	AdbDate        string     `gorm:"column:adb_date;type:varchar(20)" json:"adb_date"`              // 业务数据变动时间
-	DS             string     `gorm:"column:ds;type:varchar(20);index" json:"ds"`                    // 分区字段
+	DS             string     `gorm:"column:ds;type:varchar(20);index" json:"ds"`                    // 分区字段（YYYYMMDD）用于追溯，不参与唯一性
 	SyncTime       time.Time  `gorm:"column:sync_time;type:timestamp;index" json:"sync_time"`        // 同步时间
-	UniqueKey      string     `gorm:"column:unique_key;type:varchar(200);uniqueIndex" json:"unique_key"` // 唯一键（c_family_id_ds）
+	UniqueKey      string     `gorm:"column:unique_key;type:varchar(200);uniqueIndex" json:"unique_key"` // 唯一键（c_family_id）不含ds
 	CreatedAt      time.Time  `gorm:"column:created_at;type:timestamp;autoCreateTime" json:"created_at"` // 创建时间
 	UpdatedAt      time.Time  `gorm:"column:updated_at;type:timestamp;autoUpdateTime" json:"updated_at"` // 更新时间
 }
