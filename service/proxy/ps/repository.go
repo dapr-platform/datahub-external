@@ -301,66 +301,59 @@ func (r *Repository) GetLatestDS(ctx context.Context) (string, error) {
 	return result.DS, nil
 }
 
-// CleanOldDSData 清理旧DS的数据（保留当前DS）
+// CleanOldDSData 清理指定数据类型的旧DS数据（保留当前DS）
 // 用于全量同步成功后，删除旧版本的数据
-func (r *Repository) CleanOldDSData(ctx context.Context, currentDS string) error {
-	slog.Info("开始清理旧DS数据", "current_ds", currentDS)
+// dataName: 数据类型名称，如 "family-members", "positions-all" 等
+func (r *Repository) CleanOldDSData(ctx context.Context, currentDS string, dataName string) error {
+	var model interface{}
+	var tableName string
+	var typeName string
 
-	// 清理家族成员旧数据
-	result := r.db.WithContext(ctx).Where("ds != ?", currentDS).Delete(&PSFamilyMember{})
+	// 根据dataName确定要清理的表
+	switch dataName {
+	case "family-members":
+		model = &PSFamilyMember{}
+		tableName = "ps_family_members"
+		typeName = "家族成员"
+	case "positions-inc", "positions-all":
+		model = &PSPosition{}
+		tableName = "ps_positions"
+		typeName = "岗位"
+	case "organizations-inc", "organizations-all":
+		model = &PSOrganization{}
+		tableName = "ps_organizations"
+		typeName = "组织"
+	case "employees-inc", "employees-all":
+		model = &PSEmployee{}
+		tableName = "ps_employees"
+		typeName = "员工"
+	case "employee-honors":
+		model = &PSEmployeeHonor{}
+		tableName = "ps_employee_honors"
+		typeName = "员工荣誉"
+	case "family-main":
+		model = &PSFamilyMain{}
+		tableName = "ps_family_mains"
+		typeName = "家族父表"
+	default:
+		slog.Warn("不支持的数据类型，跳过清理旧DS数据", "data_type", dataName)
+		return nil
+	}
+
+	slog.Info("开始清理旧DS数据", "data_type", dataName, "table", tableName, "current_ds", currentDS)
+
+	// 清理指定表的旧数据
+	result := r.db.WithContext(ctx).Where("ds != ?", currentDS).Delete(model)
 	if result.Error != nil {
-		return fmt.Errorf("清理家族成员旧数据失败: %v", result.Error)
-	}
-	if result.RowsAffected > 0 {
-		slog.Info("清理家族成员旧数据", "deleted", result.RowsAffected)
+		return fmt.Errorf("清理%s旧数据失败: %v", typeName, result.Error)
 	}
 
-	// 清理岗位旧数据
-	result = r.db.WithContext(ctx).Where("ds != ?", currentDS).Delete(&PSPosition{})
-	if result.Error != nil {
-		return fmt.Errorf("清理岗位旧数据失败: %v", result.Error)
-	}
 	if result.RowsAffected > 0 {
-		slog.Info("清理岗位旧数据", "deleted", result.RowsAffected)
+		slog.Info("清理旧DS数据完成", "data_type", dataName, "table", tableName, "deleted", result.RowsAffected, "current_ds", currentDS)
+	} else {
+		slog.Info("没有旧DS数据需要清理", "data_type", dataName, "table", tableName, "current_ds", currentDS)
 	}
 
-	// 清理组织旧数据
-	result = r.db.WithContext(ctx).Where("ds != ?", currentDS).Delete(&PSOrganization{})
-	if result.Error != nil {
-		return fmt.Errorf("清理组织旧数据失败: %v", result.Error)
-	}
-	if result.RowsAffected > 0 {
-		slog.Info("清理组织旧数据", "deleted", result.RowsAffected)
-	}
-
-	// 清理员工旧数据
-	result = r.db.WithContext(ctx).Where("ds != ?", currentDS).Delete(&PSEmployee{})
-	if result.Error != nil {
-		return fmt.Errorf("清理员工旧数据失败: %v", result.Error)
-	}
-	if result.RowsAffected > 0 {
-		slog.Info("清理员工旧数据", "deleted", result.RowsAffected)
-	}
-
-	// 清理员工荣誉旧数据
-	result = r.db.WithContext(ctx).Where("ds != ?", currentDS).Delete(&PSEmployeeHonor{})
-	if result.Error != nil {
-		return fmt.Errorf("清理员工荣誉旧数据失败: %v", result.Error)
-	}
-	if result.RowsAffected > 0 {
-		slog.Info("清理员工荣誉旧数据", "deleted", result.RowsAffected)
-	}
-
-	// 清理家族父表旧数据
-	result = r.db.WithContext(ctx).Where("ds != ?", currentDS).Delete(&PSFamilyMain{})
-	if result.Error != nil {
-		return fmt.Errorf("清理家族父表旧数据失败: %v", result.Error)
-	}
-	if result.RowsAffected > 0 {
-		slog.Info("清理家族父表旧数据", "deleted", result.RowsAffected)
-	}
-
-	slog.Info("清理旧DS数据完成", "current_ds", currentDS)
 	return nil
 }
 
