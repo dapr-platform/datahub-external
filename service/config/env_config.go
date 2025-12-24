@@ -89,7 +89,7 @@ func LoadConfig() *Config {
 			AppSecret:           getEnv("PS_APP_SECRET", ""),
 			Stage:               getEnv("PS_STAGE", "RELEASE"),
 			EnableScheduler:     getEnvBool("PS_ENABLE_SCHEDULER", true),
-			FamilyMemberCron:    getEnv("PS_FAMILY_MEMBER_CRON", "0 0 2 * * *"),     // 每天凌晨2点
+			FamilyMemberCron:    getEnv("PS_FAMILY_MEMBER_CRON", "0 30 3 * * *"),    // 每天凌晨3:30（数据2-3点更新，3点后可调用）
 			PositionIncCron:     getEnv("PS_POSITION_INC_CRON", "0 30 4 * * *"),     // 每天凌晨4:30
 			PositionAllCron:     getEnv("PS_POSITION_ALL_CRON", "0 30 3 * * 0"),     // 每周日凌晨3:30
 			OrganizationIncCron: getEnv("PS_ORGANIZATION_INC_CRON", "0 30 4 * * *"), // 每天凌晨4:30
