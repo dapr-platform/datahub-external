@@ -103,14 +103,22 @@ func init() {
 	// 初始化PS客户端(如果配置了)
 	if cfg.PS.AppKey != "" && cfg.PS.AppSecret != "" {
 		psConfig := ps.PSConfig{
-			AppKey:           cfg.PS.AppKey,
-			AppSecret:        cfg.PS.AppSecret,
-			Stage:            cfg.PS.Stage,
-			BaseURL:          cfg.PS.BaseURL,
-			EnableScheduler:  cfg.PS.EnableScheduler,
-			FamilyMemberCron: cfg.PS.FamilyMemberCron,
-			PageSize:         cfg.PS.PageSize,
-			MaxPages:         cfg.PS.MaxPages,
+			AppKey:              cfg.PS.AppKey,
+			AppSecret:           cfg.PS.AppSecret,
+			Stage:               cfg.PS.Stage,
+			BaseURL:             cfg.PS.BaseURL,
+			EnableScheduler:     cfg.PS.EnableScheduler,
+			FamilyMemberCron:    cfg.PS.FamilyMemberCron,
+			PositionIncCron:     cfg.PS.PositionIncCron,
+			PositionAllCron:     cfg.PS.PositionAllCron,
+			OrganizationIncCron: cfg.PS.OrganizationIncCron,
+			OrganizationAllCron: cfg.PS.OrganizationAllCron,
+			EmployeeIncCron:     cfg.PS.EmployeeIncCron,
+			EmployeeAllCron:     cfg.PS.EmployeeAllCron,
+			EmployeeHonorCron:   cfg.PS.EmployeeHonorCron,
+			FamilyMainCron:      cfg.PS.FamilyMainCron,
+			PageSize:            cfg.PS.PageSize,
+			MaxPages:            cfg.PS.MaxPages,
 		}
 		psClient := ps.NewPSClientWithConfig(psConfig, db)
 		if err := proxy.GetGlobalRegistry().Register(psClient); err != nil {

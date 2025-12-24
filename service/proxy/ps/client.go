@@ -68,14 +68,22 @@ type Response struct {
 
 // PSConfig PS客户端配置
 type PSConfig struct {
-	AppKey           string
-	AppSecret        string
-	Stage            string
-	BaseURL          string
-	EnableScheduler  bool
-	FamilyMemberCron string
-	PageSize         int
-	MaxPages         int
+	AppKey              string
+	AppSecret           string
+	Stage               string
+	BaseURL             string
+	EnableScheduler     bool
+	FamilyMemberCron    string
+	PositionIncCron     string
+	PositionAllCron     string
+	OrganizationIncCron string
+	OrganizationAllCron string
+	EmployeeIncCron     string
+	EmployeeAllCron     string
+	EmployeeHonorCron   string
+	FamilyMainCron      string
+	PageSize            int
+	MaxPages            int
 }
 
 // NewPSClient 创建PS系统客户端（简单版本，不带数据库）
@@ -157,9 +165,17 @@ func NewPSClientWithConfig(cfg PSConfig, db interface{}) *PSClient {
 // startScheduler 启动调度器
 func (c *PSClient) startScheduler(cfg PSConfig) {
 	schedulerConfig := SchedulerConfig{
-		FamilyMemberCron: cfg.FamilyMemberCron,
-		PageSize:         cfg.PageSize,
-		MaxPages:         cfg.MaxPages,
+		FamilyMemberCron:    cfg.FamilyMemberCron,
+		PositionIncCron:     cfg.PositionIncCron,
+		PositionAllCron:     cfg.PositionAllCron,
+		OrganizationIncCron: cfg.OrganizationIncCron,
+		OrganizationAllCron: cfg.OrganizationAllCron,
+		EmployeeIncCron:     cfg.EmployeeIncCron,
+		EmployeeAllCron:     cfg.EmployeeAllCron,
+		EmployeeHonorCron:   cfg.EmployeeHonorCron,
+		FamilyMainCron:      cfg.FamilyMainCron,
+		PageSize:            cfg.PageSize,
+		MaxPages:            cfg.MaxPages,
 	}
 
 	c.scheduler = NewScheduler(schedulerConfig, c, c.repository)
